@@ -1,13 +1,19 @@
 from __future__ import annotations
 
+import logging
+
 from moid.adapters.llm import GigaChatLLM, StubLLM
 from moid.adapters.ocr import EasyOCRClient, NullOCR, StubOCR
 from moid.adapters.vlm import GigaChatVLM, StubVLM
 from moid.config import MoidConfig
 from mcd.embedding.projector import ProjectedEmbedder
 from mcd.embedding.sbert import SBERT
+from moid.prompts import _is_aerial_context
 from moid.regions.dino import DinoProposer, HybridProposer
+from moid.regions.dinov2 import Dinov2Proposer
 from moid.regions.grid import GridProposer
+
+logger = logging.getLogger(__name__)
 
 
 def build_vlm(config: MoidConfig, stub: bool = False):
@@ -57,6 +63,24 @@ def build_proposer(config: MoidConfig, *, text_prompt: str | None = None):
     prompt = text_prompt if text_prompt is not None else config.regions.text_prompt
     prompt = (prompt or "object").strip() or "object"
     backend = config.regions.backend
+    
+    # Check if aerial mode is active
+    is_aerial = _is_aerial_context(config.hints.text)
+    
+    if is_aerial:
+        # Use DINOv2 self-detection for aerial imagery (better at top-down objects)
+        try:
+            dinov2 = Dinov2Proposer(
+                model_name=config.visual.model_name or "facebook/dinov2-small",
+                min_area_ratio=config.regions.min_area_ratio,
+                max_boxes=config.regions.max_boxes,
+                device=config.visual.device,
+            )
+            # Fallback to grid if DINOv2 fails
+            return HybridProposer(dinov2, fallback=grid)
+        except Exception:
+            logger.warning("DINOv2 proposal failed, falling back to grid")
+    
     if backend == "grid":
         return grid
     dino = DinoProposer(
@@ -70,3 +94,10 @@ def build_proposer(config: MoidConfig, *, text_prompt: str | None = None):
     if backend == "hybrid":
         return HybridProposer(dino, fallback=grid)
     return dino
+
+
+def build_visual_encoder(config: MoidConfig) -> "VisualEncoder | None":
+    if config.visual.model_name:
+        from moid.adapters.visual_encoder import VisualEncoder
+        return VisualEncoder(config.visual.model_name, device=config.visual.device)
+    return None

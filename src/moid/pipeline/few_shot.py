@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 from PIL import Image
 
 from mcd.modeling.classifier import MahalanobisDriftDetector
@@ -15,6 +16,7 @@ from moid.identity import IdentityProfile, build_identity_profile
 from moid.prompts import build_reference_context, build_search_context
 from moid.regions.base import BBox, RegionProposer, crop_box
 from moid.scoring import ScoredBox, apply_target_match_gate, select_frame_detections
+from moid.adapters.visual_encoder import VisualEncoder
 
 _IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"}
 
@@ -135,6 +137,8 @@ def detect_on_image(
     ocr=None,
     profile: IdentityProfile | None = None,
     reference_captions: list[str] | None = None,
+    visual_encoder: VisualEncoder | None = None,
+    reference_visual_embeddings: np.ndarray | list | None = None,
 ) -> FewShotResult:
     from moid.factory import build_proposer
 
@@ -193,17 +197,64 @@ def _score_regions(
     ocr,
     profile: IdentityProfile,
     config: MoidConfig,
+    visual_encoder: VisualEncoder | None = None,
+    reference_visual_embeddings: np.ndarray | list | None = None,
 ) -> list[ScoredBox]:
     captions: list[str] = []
     valid_idx: list[int] = []
     results: list[ScoredBox | None] = [None] * len(boxes)
     crops: dict[int, Image.Image] = {}
+
+    # Precompute crops for all boxes (needed for visual filtering too)
     for i, box in enumerate(boxes):
         crop = crop_box(image, box)
+        crops[i] = crop
+
+    # Determine which boxes to process with VLM
+    selected_indices = list(range(len(boxes)))
+
+    if visual_encoder is not None and reference_visual_embeddings is not None and len(boxes) > 0:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("Visual pre-filter: %d boxes -> selecting top %d (min_sim=%.2f)",
+                    len(boxes), config.visual.top_k_before_vlm, config.visual.min_similarity)
+        # Compute visual embeddings for all crops
+        crop_embeddings = [visual_encoder.encode(crops[i]) for i in selected_indices]
+        ref_emb = np.asarray(reference_visual_embeddings)  # shape (n_refs, dim)
+
+        # Compute cosine similarity between each crop and each reference
+        # Normalize embeddings for cosine similarity
+        crop_emb = np.asarray(crop_embeddings)
+        crop_norm = np.linalg.norm(crop_emb, axis=1, keepdims=True)
+        crop_norm[crop_norm == 0] = 1e-9
+        crop_emb_norm = crop_emb / crop_norm
+
+        ref_norm = np.linalg.norm(ref_emb, axis=1, keepdims=True)
+        ref_norm[ref_norm == 0] = 1e-9
+        ref_emb_norm = ref_emb / ref_norm
+
+        sims = np.dot(crop_emb_norm, ref_emb_norm.T)  # shape (n_crops, n_refs)
+        mean_sim = sims.mean(axis=1)
+
+        # Select top_k_before_vlm regions (and optionally those above min_similarity)
+        top_k = config.visual.top_k_before_vlm
+        min_sim = config.visual.min_similarity
+
+        if top_k > 0 and top_k < len(boxes):
+            # Get indices of top_k highest mean_sim
+            top_indices = np.argsort(mean_sim)[-top_k:]
+            selected_indices = sorted(top_indices.tolist())
+        if min_sim > 0.0:
+            # Additional filter: only keep indices with mean_sim >= min_sim
+            selected_indices = [i for i in selected_indices if mean_sim[i] >= min_sim]
+
+    # Now process selected indices with VLM
+    for i in selected_indices:
+        crop = crops[i]
         text = (vlm.describe(crop) or "").strip()
         if not text:
             results[i] = ScoredBox(
-                box=box,
+                box=boxes[i],
                 distance=float("inf"),
                 threshold=float("nan"),
                 accepted=False,
@@ -213,7 +264,18 @@ def _score_regions(
             continue
         captions.append(text)
         valid_idx.append(i)
-        crops[i] = crop
+
+    # For non-selected indices, mark as failed with some default distance
+    for i in range(len(boxes)):
+        if i not in selected_indices and results[i] is None:
+            results[i] = ScoredBox(
+                box=boxes[i],
+                distance=float("inf"),
+                threshold=float("nan"),
+                accepted=False,
+                caption="",
+                failed=True,
+            )
 
     if captions:
         preds = detector.predict_batch(captions)

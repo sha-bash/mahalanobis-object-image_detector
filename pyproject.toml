@@ -22,6 +22,8 @@ dependencies = [
 gigachat = ["langchain-gigachat>=0.5", "python-dotenv>=1.0"]
 ocr = ["easyocr>=1.7"]
 dino = ["transformers>=4.40", "torch>=2.1"]
+video = ["opencv-python>=4.8"]
+visual = ["transformers>=4.40", "torch>=2.1"]
 dev = ["pytest>=7.0"]
 
 [project.scripts]
