@@ -17,6 +17,7 @@ pip install -e ".[dev]"
 pip install -e ".[gigachat]"   # GigaChat Vision / LLM
 pip install -e ".[ocr]"        # EasyOCR (опционально)
 pip install -e ".[dino]"       # Grounding DINO (опционально)
+pip install opencv-python-headless  # Для обработки видео
 ```
 
 Скопируйте `.env.example` в `.env` и задайте `GIGACHAT_CREDENTIALS`. CLI подхватывает `.env` через `python-dotenv` (extra `[gigachat]`).
@@ -29,7 +30,18 @@ pip install -e ".[dino]"       # Grounding DINO (опционально)
 
 ## CLI
 
-Интерактивный поиск (этапы 0–9 в терминале):
+### Подкоманды
+
+| Команда | Назначение |
+|---------|-----------|
+| `moid search` | Интерактивный или пакетный поиск объектов по изображениям |
+| `moid video`  | Поиск объектов в видео (кадры извлекаются автоматически) |
+| `moid few-shot` | Поиск объекта на одном целевом изображении |
+| `moid zero-shot` | Поиск по текстовому запросу среди набора изображений |
+
+### `moid search` — поиск по изображениям
+
+Интерактивный режим (этапы 0–9 в терминале):
 
 ```bash
 moid search --config configs/default.yaml
@@ -44,10 +56,48 @@ moid search --refs data/refs --search data/search --non-interactive --no-refine 
 moid search --stub --refs tests/fixtures --search tests/fixtures --non-interactive --no-refine
 ```
 
-Одно изображение (прежний API):
+| Флаг | Назначение |
+|------|-----------|
+| `--refs` | Папка с референсными фото (эталонные объекты) |
+| `--search` | Папка с фото для поиска |
+| `--out` | Директория для отчётов и overlay-изображений |
+| `--config` | Файл YAML-конфигурации |
+| `--stub` | Использовать stub VLM/LLM (без GigaChat, читает sidecar `.txt`) |
+| `--no-refine` | Пропустить уточнение описания |
+| `--non-interactive` | Пакетный режим без вопросов |
+
+### `moid video` — поиск в видео
+
+Автоматически извлекает кадры из видео и применяет ту же few-shot логику обнаружения.
+
+```bash
+moid video --video data/search/video_test.mp4 --refs data/refs --out reports/video_result.json --config configs/default.yaml
+```
+
+| Флаг | Назначение |
+|------|-----------|
+| `--video` | Путь к видеофайлу |
+| `--refs` | Папка с референсными фото |
+| `--out` | Путь для JSON-отчёта |
+| `--config` | Файл YAML-конфигурации |
+| `--frame-step` | Обрабатывать каждый N-й кадр (по умолчанию 10) |
+| `--stub` | Использовать stub VLM/LLM |
+
+**Как работает:**
+1. Из видео извлекаются кадры с шагом `frame_step`
+2. На референсах формируется профиль объекта через VLM
+3. На каждом кадре ищется объект с помощью детектора (Sentence-BERT + Mahalanobis distance)
+4. Результат — JSON-файл с результатами по каждому кадру: `frame_index`, `timestamp`, `frame_positive`, `detections` (bounding boxes с координатами, расстоянием, caption)
+
+### `moid few-shot` — одно изображение
 
 ```bash
 moid few-shot --refs data/refs --target data/search/photo_4_2026-09-01_18-53-11.jpg --config configs/default.yaml --out result.json
+```
+
+### `moid zero-shot` — текстовый запрос
+
+```bash
 moid zero-shot --query "красный грузовик" --images data/search --stub --mode pairwise
 ```
 
@@ -89,7 +139,40 @@ print(result.frame_positive, result.detections)
 
 `include_best_if_none_accepted` рисует лучший бокс, но **не** ставит `frame_positive`.
 
+## Порядок запуска
+
+### Полный пайплайн обработки
+
+```
+Шаг 1: Подготовка данных
+  ├── data/refs/   → референсные фото (эталонный объект)
+  └── data/search/ → кадры для поиска (фото или видео)
+
+Шаг 2: Обработка изображений
+  moid search --refs data/refs --search data/search \
+    --non-interactive --no-refine --out reports \
+    --config configs/default.yaml
+
+Шаг 3: Обработка видео (если есть)
+  moid video --video data/search/video_test.mp4 \
+    --refs data/refs --out reports/video_result.json \
+    --config configs/default.yaml
+
+Шаг 4: Результаты
+  ├── reports/           → отчёты по изображениям
+  │   └── overlays/      → overlay с bounding boxes
+  └── reports/video_result.json → результаты по видео
+```
+
+### Пошаговое описание
+
+1. **Референсы** — загрузите в `data/refs/` фото искомого объекта (крупные кадры, чётко видимый объект)
+2. **Поиск** — загрузите в `data/search/` кадры/видео для анализа
+3. **Обработка** — запустите `moid search` для изображений и `moid video` для видео
+4. **Отчёты** — результаты в `reports/` (JSON + overlay-изображения с bounding boxes)
+
 ## Ограничения
 
 - Сетка режет объекты; для транспорта/крупных предметов лучше `regions.backend: hybrid` при установленном `[dino]`.
 - Ковариация в высокой размерности при n≤10 сильно регуляризована; проектор или `diagonal` предпочтительнее `full`.
+- Видео: кадры извлекаются с шагом `frame_step` (по умолчанию 10). Для быстрого движения уменьшите шаг.

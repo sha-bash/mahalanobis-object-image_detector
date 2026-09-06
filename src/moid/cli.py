@@ -11,6 +11,7 @@ from moid.factory import build_embedder, build_llm, build_ocr, build_vlm
 from moid.pipeline.few_shot import run_few_shot
 from moid.pipeline.zero_shot import run_zero_shot
 from moid.session import run_search_session
+from moid.video import process_video
 
 
 def _load_dotenv() -> None:
@@ -51,6 +52,14 @@ def main(argv: list[str] | None = None) -> int:
     search.add_argument("--no-refine", action="store_true", help="Skip description clarification")
     search.add_argument("--non-interactive", action="store_true", help="Do not prompt; use flags/defaults")
 
+    vid = sub.add_parser("video", help="Detect objects in a video using reference images")
+    vid.add_argument("--video", required=True, help="Path to input video file")
+    vid.add_argument("--refs", required=True, help="Folder with reference images")
+    vid.add_argument("--out", default="", help="Output JSON path")
+    vid.add_argument("--config", default="", help="YAML config path")
+    vid.add_argument("--frame-step", type=int, default=10, help="Process every N-th frame (default: 10)")
+    vid.add_argument("--stub", action="store_true", help="Force stub VLM/LLM")
+
     args = parser.parse_args(argv)
     cfg = load_config(args.config or None)
     if args.command == "zero-shot" and args.mode:
@@ -69,6 +78,23 @@ def main(argv: list[str] | None = None) -> int:
             stdout=sys.stdout,
             interactive=interactive and not args.non_interactive,
         )
+        return 0
+
+    if args.command == "video":
+        results = process_video(
+            video_path=args.video,
+            refs=args.refs,
+            config=cfg,
+            frame_step=args.frame_step,
+            output_json=args.out or None,
+        )
+        payload = {"video": str(args.video), "frames": len(results), "results": results}
+        text = json.dumps(payload, ensure_ascii=False, indent=2)
+        if args.out:
+            Path(args.out).write_text(text, encoding="utf-8")
+            print(args.out)
+        else:
+            print(text)
         return 0
 
     if args.command == "few-shot":

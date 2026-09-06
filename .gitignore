@@ -19,3 +19,5 @@ reports/*
 data/refs/*.jpg
 data/search/*.jpg
 data/search/*.json
+data/search/*.mp4
+.gigacode_vsc
