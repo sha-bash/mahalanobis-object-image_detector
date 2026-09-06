@@ -1,0 +1,181 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field, fields
+from pathlib import Path
+from typing import Any, Literal
+
+import yaml
+
+from mcd.modeling.thresholds import (
+    ChiSquareThresholdStrategy,
+    FixedThresholdStrategy,
+    MaxPlusMarginThresholdStrategy,
+    QuantileThresholdStrategy,
+    ThresholdStrategy,
+)
+
+CovarianceMode = Literal["diagonal", "full"]
+ThresholdKind = Literal["max_margin", "chi2", "fixed", "quantile", "negative_quantile"]
+ZeroShotMode = Literal["pairwise", "one_shot"]
+VlmKind = Literal["stub", "gigachat"]
+LlmKind = Literal["stub", "gigachat"]
+RegionBackend = Literal["grid", "dino", "hybrid"]
+AggregateKind = Literal["count", "min_distance", "mean_top_k"]
+OcrBackend = Literal["none", "stub", "easyocr"]
+PromptSchema = Literal["generic", "generic+vehicle"]
+
+
+def _from_dict(cls, data: dict[str, Any] | None):
+    raw = dict(data or {})
+    allowed = {item.name for item in fields(cls)}
+    return cls(**{key: value for key, value in raw.items() if key in allowed})
+
+
+@dataclass
+class DetectorConfig:
+    sbert_model: str = "all-MiniLM-L6-v2"
+    min_cluster_size: int = 1
+    regularization: float = 0.01
+    covariance_mode: CovarianceMode = "diagonal"
+    threshold: ThresholdKind = "max_margin"
+    threshold_margin: float = 0.8
+    threshold_floor: float = 0.0
+    chi2_alpha: float = 0.95
+    fixed_threshold: float = 10.0
+    quantile: float = 0.99
+    negative_quantile: float = 0.05
+    projector_path: str | None = None
+
+
+@dataclass
+class GridConfig:
+    rows: int = 3
+    cols: int = 3
+    overlap: float = 0.2
+    extra_scales: list[list[int]] = field(default_factory=list)
+    nms_iou: float = 0.5
+    include_best_if_none_accepted: bool = False
+
+
+@dataclass
+class RegionsConfig:
+    backend: RegionBackend = "grid"
+    text_prompt: str | None = None
+    box_threshold: float = 0.25
+    text_threshold: float = 0.25
+    model_id: str = "IDEA-Research/grounding-dino-tiny"
+    max_boxes: int = 20
+    min_area_ratio: float = 0.002
+
+
+@dataclass
+class DecisionConfig:
+    min_positive_regions: int = 1
+    top_k: int = 3
+    aggregate: AggregateKind = "count"
+    uncertain_scale: float = 0.6
+    target_match_gate: bool = True
+    nms_before_accept: bool = True
+
+
+@dataclass
+class OcrConfig:
+    backend: OcrBackend = "none"
+    match_scale: float = 0.5
+    mismatch_scale: float = 1.5
+    min_confidence: float = 0.3
+
+
+@dataclass
+class QueryHintsConfig:
+    text: str = ""
+    known_traits: list[str] = field(default_factory=list)
+
+
+@dataclass
+class PromptConfig:
+    language: str = "en"
+    few_shot_examples: bool = True
+    schema: PromptSchema = "generic+vehicle"
+
+
+@dataclass
+class PathsConfig:
+    refs: str = "data/refs"
+    search: str = "data/search"
+    reports: str = "reports"
+
+
+@dataclass
+class ZeroShotConfig:
+    mode: ZeroShotMode = "pairwise"
+    reject_threshold: float | None = None
+    pairwise_scale: float = 1.0
+
+
+@dataclass
+class AdapterConfig:
+    vlm: VlmKind = "stub"
+    llm: LlmKind = "stub"
+    gigachat_model: str = "GigaChat-2-Pro"
+
+
+@dataclass
+class MoidConfig:
+    detector: DetectorConfig = field(default_factory=DetectorConfig)
+    grid: GridConfig = field(default_factory=GridConfig)
+    regions: RegionsConfig = field(default_factory=RegionsConfig)
+    decision: DecisionConfig = field(default_factory=DecisionConfig)
+    ocr: OcrConfig = field(default_factory=OcrConfig)
+    hints: QueryHintsConfig = field(default_factory=QueryHintsConfig)
+    prompt: PromptConfig = field(default_factory=PromptConfig)
+    paths: PathsConfig = field(default_factory=PathsConfig)
+    zero_shot: ZeroShotConfig = field(default_factory=ZeroShotConfig)
+    adapters: AdapterConfig = field(default_factory=AdapterConfig)
+    target_label: str = "target"
+
+    def threshold_strategy(self) -> ThresholdStrategy:
+        d = self.detector
+        if d.threshold == "max_margin":
+            return MaxPlusMarginThresholdStrategy(margin=d.threshold_margin, floor=d.threshold_floor)
+        if d.threshold == "chi2":
+            return ChiSquareThresholdStrategy(alpha=d.chi2_alpha)
+        if d.threshold in {"fixed", "negative_quantile"}:
+            return FixedThresholdStrategy(value=d.fixed_threshold)
+        if d.threshold == "quantile":
+            return QuantileThresholdStrategy(quantile=d.quantile)
+        raise ValueError(f"Unknown threshold kind: {d.threshold}")
+
+
+def load_config(path: str | Path | None) -> MoidConfig:
+    if path is None:
+        return MoidConfig()
+    raw: dict[str, Any] = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+    detector = dict(raw.get("detector", {}))
+    if detector.get("projector_path") in ("", None):
+        detector["projector_path"] = None
+    return MoidConfig(
+        detector=_from_dict(DetectorConfig, detector),
+        grid=_grid_from_dict(raw.get("grid", {})),
+        regions=_from_dict(RegionsConfig, raw.get("regions")),
+        decision=_from_dict(DecisionConfig, raw.get("decision")),
+        ocr=_from_dict(OcrConfig, raw.get("ocr")),
+        hints=_from_dict(QueryHintsConfig, raw.get("hints")),
+        prompt=_from_dict(PromptConfig, raw.get("prompt")),
+        paths=_from_dict(PathsConfig, raw.get("paths")),
+        zero_shot=_from_dict(ZeroShotConfig, raw.get("zero_shot")),
+        adapters=_from_dict(AdapterConfig, raw.get("adapters")),
+        target_label=str(raw.get("target_label", "target")),
+    )
+
+
+def _grid_from_dict(data: dict[str, Any]) -> GridConfig:
+    extra = data.get("extra_scales") or []
+    normalized = []
+    for pair in extra:
+        if len(pair) != 2:
+            raise ValueError("grid.extra_scales entries must be [rows, cols]")
+        normalized.append([int(pair[0]), int(pair[1])])
+    kwargs = dict(data)
+    kwargs["extra_scales"] = normalized
+    return _from_dict(GridConfig, kwargs)

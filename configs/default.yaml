@@ -1,0 +1,70 @@
+detector:
+  sbert_model: all-MiniLM-L6-v2
+  min_cluster_size: 1
+  regularization: 0.01
+  covariance_mode: diagonal
+  threshold: max_margin
+  threshold_margin: 0.8
+  threshold_floor: 0.0
+  chi2_alpha: 0.95
+  fixed_threshold: 10.0
+  quantile: 0.99
+  negative_quantile: 0.05
+  projector_path: null
+
+grid:
+  rows: 3
+  cols: 3
+  overlap: 0.2
+  extra_scales: [[2, 2]]
+  nms_iou: 0.5
+  include_best_if_none_accepted: false
+
+regions:
+  backend: grid
+  text_prompt: null
+  box_threshold: 0.25
+  text_threshold: 0.25
+  model_id: IDEA-Research/grounding-dino-tiny
+  max_boxes: 20
+  min_area_ratio: 0.002
+
+decision:
+  min_positive_regions: 1
+  top_k: 3
+  aggregate: count
+  uncertain_scale: 0.6
+  target_match_gate: true
+  nms_before_accept: true
+
+ocr:
+  backend: none
+  match_scale: 0.5
+  mismatch_scale: 1.5
+  min_confidence: 0.3
+
+hints:
+  text: ""
+  known_traits: []
+
+prompt:
+  language: en
+  few_shot_examples: true
+  schema: generic+vehicle
+
+paths:
+  refs: data/refs
+  search: data/search
+  reports: reports
+
+zero_shot:
+  mode: pairwise
+  reject_threshold: null
+  pairwise_scale: 1.0
+
+adapters:
+  vlm: gigachat
+  llm: gigachat
+  gigachat_model: GigaChat-2-Pro
+
+target_label: target
