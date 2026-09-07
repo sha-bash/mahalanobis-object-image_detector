@@ -24,8 +24,8 @@ pip install -e ".[video,visual]" # OpenCV + CLIP для обработки ви�
 
 ## Данные демо
 
-- `data/refs/` — эталоны (крупные кадры Lada Vesta)
-- `data/search/` — кадры поиска (в том числе Веста в сцене: `photo_4`, `photo_6`) и `labels.json`
+- `data/refs/` — эталоны
+- `data/search/` — кадры поиска
 - `reports/` — выходы прогонов (не коммитятся)
 
 ## CLI
