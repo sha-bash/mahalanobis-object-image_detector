@@ -11,7 +11,6 @@ from moid.factory import build_embedder, build_llm, build_ocr, build_vlm
 from moid.pipeline.few_shot import run_few_shot
 from moid.pipeline.zero_shot import run_zero_shot
 from moid.session import run_search_session, run_video_search_session
-from moid.video import process_video
 
 
 def _load_dotenv() -> None:
@@ -55,24 +54,20 @@ def main(argv: list[str] | None = None) -> int:
     search.add_argument("--no-refine", action="store_true", help="Skip description clarification")
     search.add_argument("--non-interactive", action="store_true", help="Do not prompt; use flags/defaults")
 
-    # video search (non-interactive)
-    video = sub.add_parser("search-video", help="Search for reference object in a video file (non-interactive)")
-    video.add_argument("--refs", required=True, help="Reference image folder or single image")
-    video.add_argument("--video", required=True, help="Input video file")
-    video.add_argument("--out", default="", help="Output JSON report path")
+    # interactive video search
+    video = sub.add_parser(
+        "search-video",
+        aliases=["search-video-i", "video"],
+        help="Build a reference profile and search every video in a folder",
+    )
+    video.add_argument("--refs", default="", help="Reference image folder (skip prompt)")
+    video.add_argument("--video", default="", help="Video folder or file (skip prompt)")
+    video.add_argument("--out", default="", help="Parent directory for report runs")
     video.add_argument("--config", default="", help="YAML config path")
-    video.add_argument("--frame-step", type=int, default=10, help="Process every Nth frame (default: 10)")
-
-    # video search (interactive)
-    video_i = sub.add_parser("search-video-i", help="Interactive video search: ref → hint → video → detect")
-    video_i.add_argument("--refs", default="", help="Reference image (skip prompt)")
-    video_i.add_argument("--video", default="", help="Video file (skip prompt)")
-    video_i.add_argument("--out", default="", help="Report directory")
-    video_i.add_argument("--config", default="", help="YAML config path")
-    video_i.add_argument("--frame-step", type=int, default=10, help="Process every Nth frame (default: 10)")
-    video_i.add_argument("--stub", action="store_true", help="Force stub VLM/LLM")
-    video_i.add_argument("--no-refine", action="store_true", help="Skip description clarification")
-    video_i.add_argument("--non-interactive", action="store_true", help="Do not prompt; use flags/defaults")
+    video.add_argument("--sample-fps", type=float, default=None, help="Frames checked per second")
+    video.add_argument("--stub", action="store_true", help="Force stub VLM/LLM")
+    video.add_argument("--no-refine", action="store_true", help="Skip description clarification")
+    video.add_argument("--non-interactive", action="store_true", help="Use flags/defaults without prompts")
 
     args = parser.parse_args(argv)
     cfg = load_config(args.config or None)
@@ -95,21 +90,20 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
 
-    if args.command == "video":
-        results = process_video(
-            video_path=args.video,
-            refs=args.refs,
-            config=cfg,
-            frame_step=args.frame_step,
-            output_json=args.out or None,
+    if args.command in {"search-video", "search-video-i", "video"}:
+        interactive = (not args.non_interactive) and sys.stdin.isatty()
+        run_video_search_session(
+            cfg,
+            refs=args.refs or None,
+            video=args.video or None,
+            out=args.out or None,
+            stub=args.stub,
+            no_refine=args.no_refine or args.non_interactive,
+            sample_fps=args.sample_fps,
+            stdin=sys.stdin,
+            stdout=sys.stdout,
+            interactive=interactive,
         )
-        payload = {"video": str(args.video), "frames": len(results), "results": results}
-        text = json.dumps(payload, ensure_ascii=False, indent=2)
-        if args.out:
-            Path(args.out).write_text(text, encoding="utf-8")
-            print(args.out)
-        else:
-            print(text)
         return 0
 
     if args.command == "few-shot":
@@ -133,23 +127,6 @@ def main(argv: list[str] | None = None) -> int:
             config=cfg,
         )
         payload = result.to_dict()
-
-    elif args.command == "search-video":
-        # process_video handles all component creation and returns list of per-frame results
-        results = process_video(
-            video_path=args.video,
-            refs=args.refs,
-            config=cfg,
-            frame_step=args.frame_step,
-            output_json=args.out if args.out else None,
-        )
-        # If output_json was provided, process_video saved the report already
-        if args.out:
-            print(args.out)
-        else:
-            # Print to stdout if no output file given
-            print(json.dumps(results, ensure_ascii=False, indent=2))
-        return 0
 
     else:
         parser.error("Unknown command")

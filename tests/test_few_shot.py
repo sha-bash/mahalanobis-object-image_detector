@@ -5,7 +5,8 @@ from PIL import Image
 
 from moid.adapters.vlm import load_image
 from moid.config import MoidConfig
-from moid.pipeline.few_shot import run_few_shot
+from moid.identity import build_identity_profile
+from moid.pipeline.few_shot import detect_on_image, fit_detector, run_few_shot
 from moid.regions.dino import DinoProposer, HybridProposer
 from moid.regions.grid import GridProposer
 from moid.scoring import ScoredBox, iou, nms
@@ -117,3 +118,44 @@ def test_min_positive_regions_and_visualization_only(tmp_path: Path):
     assert result.frame_positive is False
     assert result.detections
     assert result.detections[0].visualization_only is True
+
+
+def test_detect_on_image_wires_visual_prefilter():
+    class CountingVLM:
+        def __init__(self):
+            self.calls = 0
+
+        def describe(self, _image):
+            self.calls += 1
+            return TRUCK
+
+    class ColorEncoder:
+        def encode(self, image):
+            mean = np.asarray(image).reshape(-1, 3).mean(axis=0)
+            return np.array([mean[0], mean[1]], dtype=float)
+
+    image = Image.new("RGB", (40, 20), (0, 255, 0))
+    for x in range(20):
+        for y in range(20):
+            image.putpixel((x, y), (255, 0, 0))
+    cfg = MoidConfig()
+    cfg.visual.top_k_before_vlm = 1
+    cfg.decision.target_match_gate = False
+    vlm = CountingVLM()
+    profile = build_identity_profile([TRUCK])
+    detector = fit_detector([TRUCK], LexicalEmbedder(), cfg)
+
+    result = detect_on_image(
+        image,
+        detector,
+        vlm,
+        config=cfg,
+        proposer=GridProposer(rows=1, cols=2, overlap=0.0),
+        profile=profile,
+        reference_captions=[TRUCK],
+        visual_encoder=ColorEncoder(),
+        reference_visual_embeddings=np.array([[1.0, 0.0]]),
+    )
+
+    assert vlm.calls == 1
+    assert len([region for region in result.all_regions if not region.failed]) == 1

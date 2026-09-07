@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TextIO
+
+import numpy as np
 
 from moid.config import MoidConfig
 from moid.factory import build_embedder, build_llm, build_ocr, build_proposer, build_vlm, build_visual_encoder
 from moid.identity import apply_profile_to_captions, propose_refine_questions, refine_profile
 from moid.pipeline.few_shot import caption_references, detect_on_image, fit_detector, list_images
-from moid.reporting import new_report_dir, save_overlay, write_run_dir
-from moid.video import extract_frames
+from moid.reporting import new_report_dir, save_overlay, write_run_dir, write_video_run_dir
+from moid.video import extract_frames, list_videos
 
 
 def _ask(prompt: str, stdin: TextIO, stdout: TextIO, default: str = "") -> str:
@@ -147,7 +150,7 @@ def run_search_session(
     return out_dir
 
 
-def run_video_search_session(
+def _run_video_search_session_legacy(
     config: MoidConfig,
     *,
     refs: str | None = None,
@@ -346,4 +349,218 @@ def run_video_search_session(
     write_run_dir(out_dir, profile=profile, clarification=clarification, per_image=per_image, llm=llm)
     stdout.write(f"9 этап: отчет {report_name} расположен в {out_dir}\n")
     stdout.write(f"   Оверлеи кадров: {overlays}\n")
+    return out_dir
+
+
+def run_video_search_session(
+    config: MoidConfig,
+    *,
+    refs: str | None = None,
+    video: str | None = None,
+    out: str | None = None,
+    stub: bool = False,
+    no_refine: bool = False,
+    sample_fps: float | None = None,
+    stdin: TextIO,
+    stdout: TextIO,
+    interactive: bool = True,
+) -> Path:
+    """Build an object profile and search for it in every video in a folder."""
+    vlm = build_vlm(config, stub=stub)
+    llm = build_llm(config, stub=stub)
+    embedder = build_embedder(config)
+    visual_encoder = build_visual_encoder(config)
+
+    default_refs = refs or config.paths.refs
+    stdout.write("0 этап: укажите директорию референсных фото\n")
+    refs_path = default_refs
+    if interactive and refs is None:
+        refs_path = _ask(f"[{default_refs}]: ", stdin, stdout, default_refs)
+    stdout.write(f"Референсы: {refs_path}\n")
+
+    reference_paths = list_images(refs_path)
+    stdout.write(f"1 этап: обработка референсных фото ({len(reference_paths)} файлов)\n")
+    for path in reference_paths:
+        stdout.write(f"  - {path.name}\n")
+    stdout.write("2 этап: формирование профиля визуальным энкодером и VLM\n")
+    captions, profile = caption_references(refs_path, vlm, config)
+    stdout.write(f"Профиль: {profile.object} ({profile.domain})\n")
+    stdout.write(f"{profile.as_line()}\n")
+
+    clarification = ""
+    if not no_refine and interactive:
+        stdout.write("3 этап: желаете дополнить описание? yes/no\n")
+        if _yes(_ask("> ", stdin, stdout, "no")):
+            questions = propose_refine_questions(profile, llm)
+            if questions:
+                stdout.write("Вопросы для уточнения:\n")
+                for index, question in enumerate(questions, 1):
+                    stdout.write(f"  {index}. {question}\n")
+            stdout.write("4 этап: введите уточнение\n")
+            clarification = _ask("> ", stdin, stdout, "")
+            if clarification:
+                profile = refine_profile(profile, clarification, llm)
+                captions = apply_profile_to_captions(captions, profile)
+                stdout.write(f"Обновлённый профиль: {profile.as_line()}\n")
+            stdout.write("5 этап: уточнение обработано\n")
+        else:
+            stdout.write("4–5 этапы: уточнение пропущено.\n")
+    else:
+        stdout.write("3–5 этапы: уточнение пропущено.\n")
+
+    default_videos = video or config.paths.videos
+    stdout.write("6 этап: укажите директорию с видео\n")
+    videos_path = default_videos
+    if interactive and video is None:
+        videos_path = _ask(f"[{default_videos}]: ", stdin, stdout, default_videos)
+    video_paths = list_videos(videos_path, config.video.extensions)
+    stdout.write(f"Видео: {videos_path} ({len(video_paths)} файлов)\n")
+
+    requested_fps = sample_fps if sample_fps is not None else config.video.sample_fps
+    stdout.write("7 этап: укажите частоту проверки кадров (кадров/с)\n")
+    if interactive and sample_fps is None:
+        raw_fps = _ask(f"[{requested_fps:g}]: ", stdin, stdout, f"{requested_fps:g}")
+        try:
+            requested_fps = float(raw_fps)
+        except ValueError as exc:
+            raise ValueError("Частота проверки должна быть числом") from exc
+    if requested_fps <= 0:
+        raise ValueError("Частота проверки должна быть больше нуля")
+    stdout.write(f"Частота проверки: {requested_fps:g} кадров/с\n")
+
+    detector = fit_detector(captions, embedder, config)
+    proposer = build_proposer(config, text_prompt=config.regions.text_prompt or profile.object)
+    ocr = build_ocr(config)
+    reference_visual_embeddings = None
+    if visual_encoder is not None:
+        from moid.adapters.vlm import load_image
+
+        stdout.write("Вычисление визуальных эмбеддингов референсов...\n")
+        reference_visual_embeddings = np.stack(
+            [visual_encoder.encode(load_image(path)) for path in reference_paths],
+            axis=0,
+        )
+
+    out_dir = new_report_dir(
+        Path(out) if out else Path(config.paths.reports),
+        profile.object.replace(" ", "-")[:24] or "video-search",
+    )
+    overlays_dir = out_dir / "overlays"
+    best_dir = out_dir / "best"
+    best_dir.mkdir(parents=True, exist_ok=True)
+
+    stdout.write("8 этап: поиск целевого объекта на видео\n")
+    video_payloads: list[dict[str, Any]] = []
+    total_frames = 0
+    total_positive = 0
+    overall_best: tuple[float, Any, Any, Path, int] | None = None
+
+    for video_path in video_paths:
+        safe_stem = "".join(
+            char if char.isalnum() or char in "-_" else "-" for char in video_path.stem
+        ) or "video"
+        frame_rows: list[dict[str, Any]] = []
+        positive_count = 0
+        video_best: tuple[float, Any, Any, int] | None = None
+        stdout.write(f"  - {video_path.name}\n")
+
+        for frame_index, timestamp, image in extract_frames(video_path, requested_fps):
+            frame_result = detect_on_image(
+                image,
+                detector,
+                vlm,
+                config=config,
+                proposer=proposer,
+                ocr=ocr,
+                profile=profile,
+                reference_captions=captions,
+                visual_encoder=visual_encoder,
+                reference_visual_embeddings=reference_visual_embeddings,
+            )
+            result_dict = frame_result.to_dict()
+            overlay = None
+            if frame_result.frame_positive:
+                positive_count += 1
+                overlay_file = overlays_dir / safe_stem / f"frame_{frame_index:08d}.png"
+                save_overlay(image, frame_result, overlay_file)
+                overlay = overlay_file.relative_to(out_dir).as_posix()
+                score = min(
+                    (box.distance for box in frame_result.detections if not box.failed),
+                    default=float("inf"),
+                )
+                if video_best is None or score < video_best[0]:
+                    video_best = (score, image.copy(), frame_result, frame_index)
+            frame_rows.append(
+                {
+                    "frame_index": frame_index,
+                    "timestamp": timestamp,
+                    "frame_positive": frame_result.frame_positive,
+                    "overlay": overlay,
+                    "detections": result_dict["detections"],
+                    "all_regions": result_dict["all_regions"],
+                }
+            )
+
+        best_overlay = None
+        if video_best is not None:
+            score, best_image, best_result, best_index = video_best
+            best_file = best_dir / f"{safe_stem}_frame_{best_index:08d}.png"
+            save_overlay(best_image, best_result, best_file)
+            best_overlay = best_file.relative_to(out_dir).as_posix()
+            if overall_best is None or score < overall_best[0]:
+                overall_best = (score, best_image, best_result, video_path, best_index)
+
+        total_frames += len(frame_rows)
+        total_positive += positive_count
+        video_payloads.append(
+            {
+                "file": video_path.name,
+                "path": str(video_path),
+                "summary": {
+                    "frames_checked": len(frame_rows),
+                    "positive_frames": positive_count,
+                },
+                "best_frame_overlay": best_overlay,
+                "frames": frame_rows,
+            }
+        )
+
+    overall_best_overlay = None
+    overall_best_source = None
+    if overall_best is not None:
+        _, image, result, source_video, frame_index = overall_best
+        overall_file = best_dir / "overall_best.png"
+        save_overlay(image, result, overall_file)
+        overall_best_overlay = overall_file.relative_to(out_dir).as_posix()
+        overall_best_source = {"video": source_video.name, "frame_index": frame_index}
+
+    payload = {
+        "schema_version": 1,
+        "run_type": "video_search",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "references_path": str(refs_path),
+        "videos_path": str(videos_path),
+        "sampling": {"requested_fps": requested_fps},
+        "profile": profile.fields,
+        "domain": profile.domain,
+        "clarification": clarification,
+        "reference_captions": captions,
+        "summary": {
+            "videos_processed": len(video_paths),
+            "frames_checked": total_frames,
+            "positive_frames": total_positive,
+        },
+        "best_frame_overlay": overall_best_overlay,
+        "best_frame_source": overall_best_source,
+        "videos": video_payloads,
+    }
+    write_video_run_dir(
+        out_dir,
+        payload=payload,
+        profile=profile,
+        clarification=clarification,
+        llm=llm,
+    )
+    stdout.write("9 этап: JSON, LLM-отчёт и кадры с рамками сохранены\n")
+    stdout.write(f"Директория отчёта: {out_dir}\n")
     return out_dir

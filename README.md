@@ -17,7 +17,7 @@ pip install -e ".[dev]"
 pip install -e ".[gigachat]"   # GigaChat Vision / LLM
 pip install -e ".[ocr]"        # EasyOCR (опционально)
 pip install -e ".[dino]"       # Grounding DINO (опционально)
-pip install opencv-python-headless  # Для обработки видео
+pip install -e ".[video,visual]" # OpenCV + CLIP для обработки видео
 ```
 
 Скопируйте `.env.example` в `.env` и задайте `GIGACHAT_CREDENTIALS`. CLI подхватывает `.env` через `python-dotenv` (extra `[gigachat]`).
@@ -35,7 +35,7 @@ pip install opencv-python-headless  # Для обработки видео
 | Команда | Назначение |
 |---------|-----------|
 | `moid search` | Интерактивный или пакетный поиск объектов по изображениям |
-| `moid video`  | Поиск объектов в видео (кадры извлекаются автоматически) |
+| `moid search-video` | Интерактивный поиск объекта во всех видео папки |
 | `moid few-shot` | Поиск объекта на одном целевом изображении |
 | `moid zero-shot` | Поиск по текстовому запросу среди набора изображений |
 
@@ -66,28 +66,41 @@ moid search --stub --refs tests/fixtures --search tests/fixtures --non-interacti
 | `--no-refine` | Пропустить уточнение описания |
 | `--non-interactive` | Пакетный режим без вопросов |
 
-### `moid video` — поиск в видео
+### `moid search-video` — поиск в видео
 
-Автоматически извлекает кадры из видео и применяет ту же few-shot логику обнаружения.
+Интерактивно запрашивает папку референсов, предлагает дополнить профиль объекта,
+запрашивает папку видео и частоту проверки в кадрах/с. Enter использует значения
+`paths.refs`, `paths.videos` и `video.sample_fps` из конфигурации.
 
 ```bash
-moid video --video data/search/video_test.mp4 --refs data/refs --out reports/video_result.json --config configs/default.yaml
+moid search-video --config configs/default.yaml
+```
+
+Без вопросов:
+
+```bash
+moid search-video --refs data/refs --video data/videos --sample-fps 2 \
+  --out reports --non-interactive --no-refine --config configs/default.yaml
 ```
 
 | Флаг | Назначение |
 |------|-----------|
-| `--video` | Путь к видеофайлу |
+| `--video` | Папка с видео или один видеофайл |
 | `--refs` | Папка с референсными фото |
-| `--out` | Путь для JSON-отчёта |
+| `--out` | Родительская директория запусков |
 | `--config` | Файл YAML-конфигурации |
-| `--frame-step` | Обрабатывать каждый N-й кадр (по умолчанию 10) |
+| `--sample-fps` | Сколько кадров в секунду проверять |
 | `--stub` | Использовать stub VLM/LLM |
+| `--no-refine` | Не запрашивать дополнение описания |
+| `--non-interactive` | Использовать флаги и значения по умолчанию |
 
 **Как работает:**
-1. Из видео извлекаются кадры с шагом `frame_step`
-2. На референсах формируется профиль объекта через VLM
-3. На каждом кадре ищется объект с помощью детектора (Sentence-BERT + Mahalanobis distance)
-4. Результат — JSON-файл с результатами по каждому кадру: `frame_index`, `timestamp`, `frame_positive`, `detections` (bounding boxes с координатами, расстоянием, caption)
+1. VLM и визуальный энкодер формируют профиль по референсам.
+2. Все `mp4`, `avi`, `mov`, `mkv`, `webm` из папки обходятся по имени.
+3. Кадры выбираются по времени с `sample_fps`, регионы фильтруются CLIP и проверяются VLM + Mahalanobis.
+4. Каждый запуск создаёт `results.json`, LLM-отчёт `report.md`, все положительные кадры в `overlays/` и лучшие кадры в `best/`.
+
+Команды `moid video` и `moid search-video-i` сохранены как совместимые aliases.
 
 ### `moid few-shot` — одно изображение
 
@@ -117,7 +130,9 @@ moid zero-shot --query "красный грузовик" --images data/search --
 | `decision.min_positive_regions` | 1 | Сколько принятых боксов после NMS нужно для кадра |
 | `ocr.backend` | `none` | `stub` / `easyocr`; только если профиль — транспорт с plate |
 | `hints.text` | `""` | Необязательная подсказка, не замена референсов |
-| `paths.refs` / `search` / `reports` | `data/refs` … | Дефолты интерактива |
+| `paths.refs` / `videos` / `reports` | `data/refs` … | Дефолты видео-интерактива |
+| `video.sample_fps` | `1.0` | Проверяемых кадров в секунду |
+| `visual.model_name` | `openai/clip-vit-base-patch32` | Энкодер префильтрации регионов |
 | `adapters.vlm` / `llm` | `gigachat` в YAML | В dataclass по умолчанию `stub` |
 
 Калибровка порога на негативных подписях: `moid.calibration.calibrate_threshold(detector, negative_captions, quantile=..., floor=...)`.
@@ -154,25 +169,25 @@ print(result.frame_positive, result.detections)
     --config configs/default.yaml
 
 Шаг 3: Обработка видео (если есть)
-  moid video --video data/search/video_test.mp4 \
-    --refs data/refs --out reports/video_result.json \
+  moid search-video --video data/videos \
+    --refs data/refs --out reports --non-interactive \
     --config configs/default.yaml
 
 Шаг 4: Результаты
   ├── reports/           → отчёты по изображениям
   │   └── overlays/      → overlay с bounding boxes
-  └── reports/video_result.json → результаты по видео
+  └── reports/<run>/       → results.json, report.md, overlays/, best/
 ```
 
 ### Пошаговое описание
 
 1. **Референсы** — загрузите в `data/refs/` фото искомого объекта (крупные кадры, чётко видимый объект)
 2. **Поиск** — загрузите в `data/search/` кадры/видео для анализа
-3. **Обработка** — запустите `moid search` для изображений и `moid video` для видео
+3. **Обработка** — запустите `moid search` для изображений и `moid search-video` для видео
 4. **Отчёты** — результаты в `reports/` (JSON + overlay-изображения с bounding boxes)
 
 ## Ограничения
 
 - Сетка режет объекты; для транспорта/крупных предметов лучше `regions.backend: hybrid` при установленном `[dino]`.
 - Ковариация в высокой размерности при n≤10 сильно регуляризована; проектор или `diagonal` предпочтительнее `full`.
-- Видео: кадры извлекаются с шагом `frame_step` (по умолчанию 10). Для быстрого движения уменьшите шаг.
+- Видео не трекает объект между кадрами: каждый выбранный кадр анализируется независимо.

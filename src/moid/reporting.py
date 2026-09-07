@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -82,6 +83,68 @@ def write_run_dir(
     report_path = out_dir / "report.md"
     report_path.write_text(markdown, encoding="utf-8")
     return report_path
+
+
+def template_video_report(payload: dict[str, Any]) -> str:
+    summary = payload.get("summary", {})
+    lines = [
+        "# Отчёт поиска в видео",
+        "",
+        f"- Объект: **{payload.get('profile', {}).get('object', 'unknown')}**",
+        f"- Проверено видео: {summary.get('videos_processed', 0)}",
+        f"- Проверено кадров: {summary.get('frames_checked', 0)}",
+        f"- Кадров с объектом: {summary.get('positive_frames', 0)}",
+        "",
+        "## Видео",
+        "",
+    ]
+    for video in payload.get("videos", []):
+        stats = video.get("summary", {})
+        lines.append(
+            f"- `{video.get('file', '')}`: "
+            f"{stats.get('positive_frames', 0)} из {stats.get('frames_checked', 0)} кадров, "
+            f"лучший кадр: {video.get('best_frame_overlay') or 'нет'}"
+        )
+    lines.append("")
+    return "\n".join(lines)
+
+
+def write_video_run_dir(
+    out_dir: Path,
+    *,
+    payload: dict[str, Any],
+    profile: IdentityProfile,
+    clarification: str,
+    llm: Any | None = None,
+) -> Path:
+    """Write the canonical video JSON and an LLM-generated markdown report."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    safe_payload = _json_safe(payload)
+    json_text = json.dumps(safe_payload, ensure_ascii=False, indent=2, allow_nan=False)
+    (out_dir / "results.json").write_text(json_text, encoding="utf-8")
+    markdown = ""
+    if llm is not None:
+        prompt = REPORT_PROMPT.format(
+            profile=profile.as_line(),
+            clarification=clarification or "(none)",
+            results=json_text[:32000],
+        )
+        markdown = (llm.complete(prompt) if hasattr(llm, "complete") else "") or ""
+    if not markdown.strip():
+        markdown = template_video_report(safe_payload)
+    report_path = out_dir / "report.md"
+    report_path.write_text(markdown, encoding="utf-8")
+    return report_path
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    return value
 
 
 def save_overlay(image: str | Path | Image.Image, result: FewShotResult, dest: Path) -> None:

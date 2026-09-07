@@ -162,6 +162,8 @@ def detect_on_image(
         ocr=ocr or NullOCR(),
         profile=profile,
         config=cfg,
+        visual_encoder=visual_encoder,
+        reference_visual_embeddings=reference_visual_embeddings,
     )
     failed = sum(1 for s in scored if s.failed)
     gated = apply_target_match_gate(

@@ -55,7 +55,12 @@ prompt:
 paths:
   refs: data/refs
   search: data/search
+  videos: data/videos
   reports: reports
+
+video:
+  sample_fps: 1.0
+  extensions: [.mp4, .avi, .mov, .mkv, .webm]
 
 zero_shot:
   mode: pairwise
@@ -66,5 +71,13 @@ adapters:
   vlm: gigachat
   llm: gigachat
   gigachat_model: GigaChat-2-Pro
+
+visual:
+  model_name: openai/clip-vit-base-patch32
+  similarity_metric: cosine
+  top_k_before_vlm: 5
+  min_similarity: 0.0
+  use_visual_scores: false
+  device: cpu
 
 target_label: target
