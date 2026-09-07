@@ -88,7 +88,7 @@ class OcrConfig:
 
 @dataclass
 class QueryHintsConfig:
-    text: str = ""
+    text: str = "вид сверху, аэрофотосъёмка, объект на асфальте"
     known_traits: list[str] = field(default_factory=list)
 
 
@@ -133,6 +133,7 @@ class MoidConfig:
     zero_shot: ZeroShotConfig = field(default_factory=ZeroShotConfig)
     adapters: AdapterConfig = field(default_factory=AdapterConfig)
     target_label: str = "target"
+    visual: VisualConfig = field(default_factory=VisualConfig)
 
     def threshold_strategy(self) -> ThresholdStrategy:
         d = self.detector
@@ -145,6 +146,16 @@ class MoidConfig:
         if d.threshold == "quantile":
             return QuantileThresholdStrategy(quantile=d.quantile)
         raise ValueError(f"Unknown threshold kind: {d.threshold}")
+
+
+@dataclass
+class VisualConfig:
+    model_name: str | None = None          # e.g., "openai/clip-vit-base-patch32"
+    similarity_metric: Literal["cosine", "mahalanobis"] = "cosine"
+    top_k_before_vlm: int = 5              # how many top visual regions to describe
+    min_similarity: float = 0.0            # absolute threshold (depends on metric)
+    use_visual_scores: bool = False        # combine with text scores or only filter
+    device: str = "cpu"
 
 
 def load_config(path: str | Path | None) -> MoidConfig:
@@ -166,6 +177,7 @@ def load_config(path: str | Path | None) -> MoidConfig:
         zero_shot=_from_dict(ZeroShotConfig, raw.get("zero_shot")),
         adapters=_from_dict(AdapterConfig, raw.get("adapters")),
         target_label=str(raw.get("target_label", "target")),
+        visual=_from_dict(VisualConfig, raw.get("visual", {})),
     )
 
 
