@@ -12,6 +12,7 @@ from moid.prompts import _is_aerial_context
 from moid.regions.dino import DinoProposer, HybridProposer
 from moid.regions.dinov2 import Dinov2Proposer
 from moid.regions.grid import GridProposer
+from moid.regions.yolo import YoloProposalGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +51,18 @@ def build_ocr(config: MoidConfig):
 
 def build_grid(config: MoidConfig) -> GridProposer:
     extra = tuple((int(a), int(b)) for a, b in config.grid.extra_scales)
+    fine = (
+        tuple((int(a), int(b)) for a, b in config.grid.fine_scales)
+        if config.grid.use_fine_scales
+        else ()
+    )
     return GridProposer(
         rows=config.grid.rows,
         cols=config.grid.cols,
         overlap=config.grid.overlap,
         extra_scales=extra,
+        fine_scales=fine,
+        fine_overlap=config.grid.fine_overlap,
     )
 
 
@@ -63,6 +71,15 @@ def build_proposer(config: MoidConfig, *, text_prompt: str | None = None):
     prompt = text_prompt if text_prompt is not None else config.regions.text_prompt
     prompt = (prompt or "object").strip() or "object"
     backend = config.regions.backend
+
+    if backend == "yolo":
+        return YoloProposalGenerator(
+            model_name=config.regions.yolo_model,
+            confidence=config.regions.yolo_confidence,
+            iou_threshold=config.regions.yolo_iou,
+            max_boxes=config.regions.max_boxes,
+            vehicle_only=config.regions.yolo_vehicle_only,
+        )
     
     # Check if aerial mode is active
     is_aerial = _is_aerial_context(config.hints.text)

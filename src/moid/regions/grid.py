@@ -14,6 +14,8 @@ class GridProposer:
         cols: int = 3,
         overlap: float = 0.2,
         extra_scales: tuple[tuple[int, int], ...] = (),
+        fine_scales: tuple[tuple[int, int], ...] = (),
+        fine_overlap: float = 0.1,
     ) -> None:
         if rows < 1 or cols < 1:
             raise ValueError("rows and cols must be >= 1")
@@ -23,12 +25,20 @@ class GridProposer:
         self.cols = cols
         self.overlap = overlap
         self.extra_scales = extra_scales
+        self.fine_scales = fine_scales
+        self.fine_overlap = fine_overlap
 
     def propose(self, image: Image.Image) -> list[BBox]:
         boxes: list[BBox] = []
         seen: set[tuple[int, int, int, int]] = set()
         for rows, cols in ((self.rows, self.cols), *self.extra_scales):
             for box in _grid_boxes(image.width, image.height, rows, cols, self.overlap):
+                key = box.as_tuple()
+                if key not in seen and box.area() > 0:
+                    seen.add(key)
+                    boxes.append(box)
+        for rows, cols in self.fine_scales:
+            for box in _grid_boxes(image.width, image.height, rows, cols, self.fine_overlap):
                 key = box.as_tuple()
                 if key not in seen and box.area() > 0:
                     seen.add(key)

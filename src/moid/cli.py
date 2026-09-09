@@ -68,9 +68,61 @@ def main(argv: list[str] | None = None) -> int:
     video.add_argument("--stub", action="store_true", help="Force stub VLM/LLM")
     video.add_argument("--no-refine", action="store_true", help="Skip description clarification")
     video.add_argument("--non-interactive", action="store_true", help="Use flags/defaults without prompts")
+    video.add_argument(
+        "--gt-annotations",
+        "--gt_annotations",
+        dest="gt_annotations",
+        default="",
+        help="COCO JSON file or directory with YOLO frame_XXXXXXXX.txt labels",
+    )
+    video.add_argument(
+        "--detector",
+        choices=["grid", "yolo"],
+        default="",
+        help="Region proposal backend (not the Mahalanobis classifier)",
+    )
+    video.add_argument(
+        "--nms-method",
+        "--nms_method",
+        dest="nms_method",
+        choices=["hard", "soft", "wbf"],
+        default="",
+    )
+    video.add_argument("--track", action="store_true", help="Enable greedy IoU tracking")
+    video.add_argument(
+        "--camera-compensation",
+        action="store_true",
+        help="Compensate camera motion with ORB homography before track matching",
+    )
+    video.add_argument("--tau", type=float, default=None, help="Override Mahalanobis threshold")
+    video.add_argument(
+        "--save-metrics",
+        "--save_metrics",
+        dest="save_metrics",
+        action="store_true",
+        help="Also save metrics.json (metrics are always embedded when GT is supplied)",
+    )
 
     args = parser.parse_args(argv)
     cfg = load_config(args.config or None)
+
+    if getattr(args, "detector", ""):
+        cfg.regions.backend = args.detector
+    if getattr(args, "nms_method", ""):
+        cfg.nms.method = args.nms_method
+    if getattr(args, "track", False):
+        cfg.tracking.enabled = True
+    if getattr(args, "camera_compensation", False):
+        cfg.tracking.enabled = True
+        cfg.tracking.camera_compensation = True
+    if getattr(args, "tau", None) is not None:
+        if args.tau < 0:
+            parser.error("--tau must be non-negative")
+        cfg.detector.manual_threshold = args.tau
+    if getattr(args, "gt_annotations", ""):
+        cfg.evaluation.gt_annotations = args.gt_annotations
+    if getattr(args, "save_metrics", False):
+        cfg.evaluation.save_metrics = True
 
     if args.command == "zero-shot" and args.mode:
         cfg.zero_shot.mode = args.mode  # type: ignore[assignment]

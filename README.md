@@ -100,6 +100,41 @@ moid search-video --refs data/refs --video data/videos --sample-fps 2 \
 3. Кадры выбираются по времени с `sample_fps`, регионы фильтруются CLIP и проверяются VLM + Mahalanobis.
 4. Каждый запуск создаёт `results.json`, LLM-отчёт `report.md`, все положительные кадры в `overlays/` и лучшие кадры в `best/`.
 
+### Оценка качества, YOLO и трекинг
+
+Дополнительные возможности устанавливаются отдельно, поэтому базовый grid-пайплайн
+не требует Ultralytics или COCO API:
+
+```bash
+pip install -e ".[video,visual,yolo,metrics,fusion]"
+```
+
+Пример запуска с YOLO proposals, Soft-NMS, трекингом и COCO-разметкой:
+
+```bash
+moid search-video --refs data/refs --video data/search \
+  --config configs/default.yaml --detector yolo --nms-method soft \
+  --track --camera-compensation --gt-annotations annotations/instances.json \
+  --save-metrics --non-interactive
+```
+
+`--tau VALUE` вручную переопределяет порог расстояния Махаланобиса. Доступные
+методы постобработки: `hard`, `soft`, `wbf`; WBF требует extra `fusion`.
+Для каждого запуска сохраняется `region_distances.csv`, пригодный для последующей
+калибровки. Если в `detector.calibration_csv` задан CSV с колонками
+`distance,is_positive`, порог автоматически выбирается по максимуму F1.
+
+COCO JSON должен содержать стандартные поля `images`, `annotations`,
+`categories`; `images[].file_name` связывается с видео по stem
+`frame_XXXXXXXX`. Для YOLO передаётся папка с файлами
+`frame_XXXXXXXX.txt` в формате `class cx cy width height` с нормированными
+координатами. Метрики `precision`, `recall`, `f1`, `map_50` и `map_50_95`
+записываются в `results.json`, а с `--save-metrics` также в `metrics.json`.
+
+Поля `performance` содержат total/mean/p50/p95 по этапам proposals, CLIP, VLM,
+SBERT, Mahalanobis и postprocess. Частота `--sample-fps` остаётся частотой
+выборки входного видео и не подменяет измеренный throughput.
+
 Команды `moid video` и `moid search-video-i` сохранены как совместимые aliases.
 
 ### `moid few-shot` — одно изображение

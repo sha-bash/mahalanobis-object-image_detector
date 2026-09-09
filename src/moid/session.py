@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, TextIO
@@ -9,9 +10,19 @@ import numpy as np
 from moid.config import MoidConfig
 from moid.factory import build_embedder, build_llm, build_ocr, build_proposer, build_vlm, build_visual_encoder
 from moid.identity import apply_profile_to_captions, propose_refine_questions, refine_profile
-from moid.pipeline.few_shot import caption_references, detect_on_image, fit_detector, list_images
+from moid.metrics import compute_metrics, frame_stem, load_ground_truth, predictions_from_video_payload
+from moid.performance import StageTimer
+from moid.pipeline.few_shot import (
+    caption_references,
+    caption_references_with_paths,
+    detect_on_image,
+    filter_reference_paths,
+    fit_detector,
+    list_images,
+)
 from moid.reporting import new_report_dir, save_overlay, write_run_dir, write_video_run_dir
 from moid.video import extract_frames, list_videos
+from moid.tracking import CameraMotionEstimator, Tracker
 
 
 def _ask(prompt: str, stdin: TextIO, stdout: TextIO, default: str = "") -> str:
@@ -378,12 +389,15 @@ def run_video_search_session(
         refs_path = _ask(f"[{default_refs}]: ", stdin, stdout, default_refs)
     stdout.write(f"Референсы: {refs_path}\n")
 
-    reference_paths = list_images(refs_path)
+    reference_paths = filter_reference_paths(list_images(refs_path), config)
     stdout.write(f"1 этап: обработка референсных фото ({len(reference_paths)} файлов)\n")
     for path in reference_paths:
         stdout.write(f"  - {path.name}\n")
     stdout.write("2 этап: формирование профиля визуальным энкодером и VLM\n")
-    captions, profile = caption_references(refs_path, vlm, config)
+    captions, profile, reference_paths = caption_references_with_paths(
+        refs_path, vlm, config
+    )
+    stdout.write(f"После фильтрации использовано референсов: {len(captions)}\n")
     stdout.write(f"Профиль: {profile.object} ({profile.domain})\n")
     stdout.write(f"{profile.as_line()}\n")
 
@@ -454,6 +468,9 @@ def run_video_search_session(
     total_frames = 0
     total_positive = 0
     overall_best: tuple[float, Any, Any, Path, int] | None = None
+    performance = StageTimer(enabled=config.performance.enabled)
+    image_sizes: dict[str, tuple[int, int]] = {}
+    stability_by_video: dict[str, dict[str, float | int]] = {}
 
     for video_path in video_paths:
         safe_stem = "".join(
@@ -462,9 +479,18 @@ def run_video_search_session(
         frame_rows: list[dict[str, Any]] = []
         positive_count = 0
         video_best: tuple[float, Any, Any, int] | None = None
+        tracker = (
+            Tracker(config.tracking.iou_threshold, config.tracking.max_misses)
+            if config.tracking.enabled
+            else None
+        )
+        motion = CameraMotionEstimator(config.tracking.camera_compensation)
+        video_image_size: tuple[int, int] | None = None
         stdout.write(f"  - {video_path.name}\n")
 
         for frame_index, timestamp, image in extract_frames(video_path, requested_fps):
+            frame_timer = StageTimer(enabled=config.performance.enabled)
+            transform = motion.update(image)
             frame_result = detect_on_image(
                 image,
                 detector,
@@ -476,7 +502,14 @@ def run_video_search_session(
                 reference_captions=captions,
                 visual_encoder=visual_encoder,
                 reference_visual_embeddings=reference_visual_embeddings,
+                timer=frame_timer,
             )
+            if tracker is not None:
+                with frame_timer.measure("tracking"):
+                    tracker.update(frame_result.detections, transform)
+            performance.merge(frame_timer)
+            video_image_size = image.size
+            image_sizes[frame_stem(frame_index)] = image.size
             result_dict = frame_result.to_dict()
             overlay = None
             if frame_result.frame_positive:
@@ -500,6 +533,9 @@ def run_video_search_session(
                     "all_regions": result_dict["all_regions"],
                 }
             )
+
+        if tracker is not None and video_image_size is not None:
+            stability_by_video[video_path.name] = tracker.stability(video_image_size)
 
         best_overlay = None
         if video_best is not None:
@@ -554,6 +590,53 @@ def run_video_search_session(
         "best_frame_source": overall_best_source,
         "videos": video_payloads,
     }
+    if config.performance.enabled:
+        payload["performance"] = performance.summary()
+    if stability_by_video:
+        payload["temporal_stability"] = stability_by_video
+    _write_region_distances(out_dir / "region_distances.csv", payload)
+    if config.evaluation.gt_annotations:
+        ground_truth, categories = load_ground_truth(
+            config.evaluation.gt_annotations,
+            image_sizes=image_sizes,
+        )
+        processed_stems = set(image_sizes)
+        ground_truth = [item for item in ground_truth if item.frame in processed_stems]
+        if not ground_truth:
+            raise ValueError(
+                "GT contains no annotations matching processed frame_XXXXXXXX stems"
+            )
+        target_terms = {
+            profile.object.casefold(),
+            *[term.casefold() for term in config.references.allowed_terms],
+        }
+        category_id = next(
+            (
+                identifier
+                for identifier, name in categories.items()
+                if any(term and term in name.casefold() for term in target_terms)
+            ),
+            next(iter(categories)),
+        )
+        ground_truth = [item for item in ground_truth if item.category_id == category_id]
+        predictions = predictions_from_video_payload(payload, category_id=category_id)
+        metric_result = compute_metrics(ground_truth, predictions)
+        payload["evaluation"] = {
+            "gt_annotations": config.evaluation.gt_annotations,
+            "categories": categories,
+        }
+        payload["metrics"] = metric_result.to_dict()
+        if config.evaluation.save_metrics:
+            import json
+
+            (out_dir / "metrics.json").write_text(
+                json.dumps(metric_result.to_dict(), ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            (out_dir / "pr_curve.json").write_text(
+                json.dumps(metric_result.pr_curve, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
     write_video_run_dir(
         out_dir,
         payload=payload,
@@ -564,3 +647,45 @@ def run_video_search_session(
     stdout.write("9 этап: JSON, LLM-отчёт и кадры с рамками сохранены\n")
     stdout.write(f"Директория отчёта: {out_dir}\n")
     return out_dir
+
+
+def _write_region_distances(path: Path, payload: dict[str, Any]) -> None:
+    columns = [
+        "video",
+        "frame_index",
+        "timestamp",
+        "x1",
+        "y1",
+        "x2",
+        "y2",
+        "distance",
+        "threshold",
+        "confidence",
+        "accepted",
+        "target_match",
+        "proposal_source",
+    ]
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=columns)
+        writer.writeheader()
+        for video in payload.get("videos", []):
+            for frame in video.get("frames", []):
+                for region in frame.get("all_regions", []):
+                    box = region.get("bbox", [None] * 4)
+                    writer.writerow(
+                        {
+                            "video": video.get("file"),
+                            "frame_index": frame.get("frame_index"),
+                            "timestamp": frame.get("timestamp"),
+                            "x1": box[0],
+                            "y1": box[1],
+                            "x2": box[2],
+                            "y2": box[3],
+                            "distance": region.get("distance"),
+                            "threshold": region.get("threshold"),
+                            "confidence": region.get("confidence"),
+                            "accepted": region.get("accepted"),
+                            "target_match": region.get("target_match"),
+                            "proposal_source": region.get("proposal_source"),
+                        }
+                    )

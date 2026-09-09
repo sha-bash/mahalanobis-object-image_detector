@@ -19,7 +19,7 @@ ThresholdKind = Literal["max_margin", "chi2", "fixed", "quantile", "negative_qua
 ZeroShotMode = Literal["pairwise", "one_shot"]
 VlmKind = Literal["stub", "gigachat"]
 LlmKind = Literal["stub", "gigachat"]
-RegionBackend = Literal["grid", "dino", "hybrid"]
+RegionBackend = Literal["grid", "dino", "hybrid", "yolo"]
 AggregateKind = Literal["count", "min_distance", "mean_top_k"]
 OcrBackend = Literal["none", "stub", "easyocr"]
 PromptSchema = Literal["generic", "generic+vehicle"]
@@ -45,6 +45,8 @@ class DetectorConfig:
     quantile: float = 0.99
     negative_quantile: float = 0.05
     projector_path: str | None = None
+    manual_threshold: float | None = None
+    calibration_csv: str | None = None
 
 
 @dataclass
@@ -53,6 +55,9 @@ class GridConfig:
     cols: int = 3
     overlap: float = 0.2
     extra_scales: list[list[int]] = field(default_factory=list)
+    fine_scales: list[list[int]] = field(default_factory=lambda: [[4, 4], [5, 5]])
+    use_fine_scales: bool = False
+    fine_overlap: float = 0.1
     nms_iou: float = 0.5
     include_best_if_none_accepted: bool = False
 
@@ -66,6 +71,10 @@ class RegionsConfig:
     model_id: str = "IDEA-Research/grounding-dino-tiny"
     max_boxes: int = 20
     min_area_ratio: float = 0.002
+    yolo_model: str = "yolov8n.pt"
+    yolo_confidence: float = 0.25
+    yolo_iou: float = 0.45
+    yolo_vehicle_only: bool = True
 
 
 @dataclass
@@ -116,6 +125,41 @@ class VideoConfig:
 
 
 @dataclass
+class ReferenceFilterConfig:
+    excluded_terms: list[str] = field(default_factory=lambda: ["sedan"])
+    allowed_terms: list[str] = field(default_factory=list)
+    min_references_warning: int = 2
+
+
+@dataclass
+class NmsConfig:
+    method: Literal["hard", "soft", "wbf"] = "hard"
+    iou_threshold: float | None = None
+    soft_sigma: float = 0.5
+    confidence_temperature: float = 1.0
+    min_confidence: float = 0.001
+
+
+@dataclass
+class TrackingConfig:
+    enabled: bool = False
+    iou_threshold: float = 0.3
+    max_misses: int = 5
+    camera_compensation: bool = False
+
+
+@dataclass
+class EvaluationConfig:
+    gt_annotations: str | None = None
+    save_metrics: bool = False
+
+
+@dataclass
+class PerformanceConfig:
+    enabled: bool = True
+
+
+@dataclass
 class VisualConfig:
     model_name: str | None = None          # e.g., "openai/clip-vit-base-patch32"
     similarity_metric: Literal["cosine", "mahalanobis"] = "cosine"
@@ -154,6 +198,11 @@ class MoidConfig:
     adapters: AdapterConfig = field(default_factory=AdapterConfig)
     target_label: str = "target"
     visual: VisualConfig = field(default_factory=VisualConfig)
+    references: ReferenceFilterConfig = field(default_factory=ReferenceFilterConfig)
+    nms: NmsConfig = field(default_factory=NmsConfig)
+    tracking: TrackingConfig = field(default_factory=TrackingConfig)
+    evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
+    performance: PerformanceConfig = field(default_factory=PerformanceConfig)
 
     def threshold_strategy(self) -> ThresholdStrategy:
         d = self.detector
@@ -188,6 +237,11 @@ def load_config(path: str | Path | None) -> MoidConfig:
         adapters=_from_dict(AdapterConfig, raw.get("adapters")),
         target_label=str(raw.get("target_label", "target")),
         visual=_from_dict(VisualConfig, raw.get("visual", {})),
+        references=_from_dict(ReferenceFilterConfig, raw.get("references")),
+        nms=_from_dict(NmsConfig, raw.get("nms")),
+        tracking=_from_dict(TrackingConfig, raw.get("tracking")),
+        evaluation=_from_dict(EvaluationConfig, raw.get("evaluation")),
+        performance=_from_dict(PerformanceConfig, raw.get("performance")),
     )
 
 
@@ -200,4 +254,6 @@ def _grid_from_dict(data: dict[str, Any]) -> GridConfig:
         normalized.append([int(pair[0]), int(pair[1])])
     kwargs = dict(data)
     kwargs["extra_scales"] = normalized
+    fine = data.get("fine_scales") or [[4, 4], [5, 5]]
+    kwargs["fine_scales"] = [[int(pair[0]), int(pair[1])] for pair in fine]
     return _from_dict(GridConfig, kwargs)

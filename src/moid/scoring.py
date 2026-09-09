@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 
 from moid.captions import target_match_value
 from moid.regions.base import BBox
@@ -18,6 +19,10 @@ class ScoredBox:
     raw_distance: float | None = None
     ocr_text: str | None = None
     visualization_only: bool = False
+    proposal_confidence: float = 1.0
+    proposal_source: str = "unknown"
+    confidence: float | None = None
+    track_id: int | None = None
 
     @property
     def score(self) -> float:
@@ -47,6 +52,107 @@ def nms(boxes: list[ScoredBox], iou_threshold: float = 0.5) -> list[ScoredBox]:
         if all(iou(cand.box, k.box) < iou_threshold for k in kept):
             kept.append(cand)
     return kept
+
+
+def mahalanobis_confidence(box: ScoredBox, temperature: float = 1.0) -> float:
+    scale = max(float(temperature), 1e-9)
+    margin = max(-60.0, min(60.0, (box.threshold - box.distance) / scale))
+    semantic = 1.0 / (1.0 + math.exp(-margin))
+    return float(max(0.0, min(1.0, semantic * box.proposal_confidence)))
+
+
+def soft_nms(
+    boxes: list[ScoredBox],
+    *,
+    iou_threshold: float = 0.5,
+    sigma: float = 0.5,
+    min_confidence: float = 0.001,
+    temperature: float = 1.0,
+) -> list[ScoredBox]:
+    """Gaussian Soft-NMS using the Mahalanobis margin as confidence."""
+    remaining = list(boxes)
+    for box in remaining:
+        box.confidence = mahalanobis_confidence(box, temperature)
+    kept: list[ScoredBox] = []
+    while remaining:
+        best = max(remaining, key=lambda item: item.confidence or 0.0)
+        remaining.remove(best)
+        if (best.confidence or 0.0) < min_confidence:
+            break
+        kept.append(best)
+        next_remaining: list[ScoredBox] = []
+        for candidate in remaining:
+            overlap = iou(best.box, candidate.box)
+            if overlap >= iou_threshold:
+                candidate.confidence = (candidate.confidence or 0.0) * math.exp(
+                    -(overlap * overlap) / max(sigma, 1e-9)
+                )
+            if (candidate.confidence or 0.0) >= min_confidence:
+                next_remaining.append(candidate)
+        remaining = next_remaining
+    return kept
+
+
+def weighted_boxes_fusion(
+    boxes: list[ScoredBox],
+    *,
+    image_size: tuple[int, int],
+    iou_threshold: float = 0.5,
+    min_confidence: float = 0.001,
+    temperature: float = 1.0,
+) -> list[ScoredBox]:
+    try:
+        from ensemble_boxes import weighted_boxes_fusion as ensemble_wbf
+    except ImportError as exc:
+        raise RuntimeError(
+            'WBF requires the optional dependency: pip install -e ".[fusion]"'
+        ) from exc
+    if not boxes:
+        return []
+    width, height = image_size
+    scores = [mahalanobis_confidence(box, temperature) for box in boxes]
+    normalized = [
+        [
+            box.box.x1 / width,
+            box.box.y1 / height,
+            box.box.x2 / width,
+            box.box.y2 / height,
+        ]
+        for box in boxes
+    ]
+    fused_boxes, fused_scores, _ = ensemble_wbf(
+        [normalized],
+        [scores],
+        [[0] * len(boxes)],
+        iou_thr=iou_threshold,
+        skip_box_thr=min_confidence,
+    )
+    output: list[ScoredBox] = []
+    for coordinates, score in zip(fused_boxes, fused_scores):
+        representative = min(
+            boxes,
+            key=lambda item: sum(
+                abs(a - b)
+                for a, b in zip(
+                    coordinates,
+                    (
+                        item.box.x1 / width,
+                        item.box.y1 / height,
+                        item.box.x2 / width,
+                        item.box.y2 / height,
+                    ),
+                )
+            ),
+        )
+        representative.box = BBox(
+            int(round(coordinates[0] * width)),
+            int(round(coordinates[1] * height)),
+            int(round(coordinates[2] * width)),
+            int(round(coordinates[3] * height)),
+        )
+        representative.confidence = float(score)
+        output.append(representative)
+    return output
 
 
 def effective_threshold(threshold: float, match: str, *, uncertain_scale: float, gated: bool) -> float:
@@ -84,6 +190,10 @@ def apply_target_match_gate(
                 raw_distance=box.raw_distance,
                 ocr_text=box.ocr_text,
                 visualization_only=False,
+                proposal_confidence=box.proposal_confidence,
+                proposal_source=box.proposal_source,
+                confidence=box.confidence,
+                track_id=box.track_id,
             )
         )
     return updated
@@ -98,14 +208,43 @@ def select_frame_detections(
     top_k: int = 3,
     include_best_if_none_accepted: bool = False,
     nms_before_accept: bool = True,
+    nms_method: str = "hard",
+    soft_sigma: float = 0.5,
+    confidence_temperature: float = 1.0,
+    min_confidence: float = 0.001,
+    image_size: tuple[int, int] | None = None,
 ) -> tuple[list[ScoredBox], bool]:
     usable = [b for b in boxes if not b.failed]
+    for box in usable:
+        box.confidence = mahalanobis_confidence(box, confidence_temperature)
+
+    def suppress(pool: list[ScoredBox]) -> list[ScoredBox]:
+        if nms_method == "soft":
+            return soft_nms(
+                pool,
+                iou_threshold=nms_iou,
+                sigma=soft_sigma,
+                min_confidence=min_confidence,
+                temperature=confidence_temperature,
+            )
+        if nms_method == "wbf":
+            if image_size is None:
+                raise ValueError("image_size is required for WBF")
+            return weighted_boxes_fusion(
+                pool,
+                image_size=image_size,
+                iou_threshold=nms_iou,
+                min_confidence=min_confidence,
+                temperature=confidence_temperature,
+            )
+        return nms(pool, iou_threshold=nms_iou)
+
     if nms_before_accept:
-        kept = nms(usable, iou_threshold=nms_iou)
+        kept = suppress(usable)
         gated_pool = kept
     else:
         accepted_only = [b for b in usable if b.accepted]
-        gated_pool = nms(accepted_only if accepted_only else usable, iou_threshold=nms_iou)
+        gated_pool = suppress(accepted_only if accepted_only else usable)
 
     accepted = [b for b in gated_pool if b.accepted]
     ranked = sorted(gated_pool, key=lambda s: s.distance)
@@ -135,6 +274,10 @@ def select_frame_detections(
                 raw_distance=best.raw_distance,
                 ocr_text=best.ocr_text,
                 visualization_only=True,
+                proposal_confidence=best.proposal_confidence,
+                proposal_source=best.proposal_source,
+                confidence=best.confidence,
+                track_id=best.track_id,
             )
         ]
     return detections, frame_positive

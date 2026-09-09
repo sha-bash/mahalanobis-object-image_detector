@@ -11,12 +11,17 @@ detector:
   quantile: 0.99
   negative_quantile: 0.05
   projector_path: null
+  manual_threshold: null
+  calibration_csv: null
 
 grid:
   rows: 3
   cols: 3
   overlap: 0.2
   extra_scales: [[2, 2]]
+  fine_scales: [[4, 4], [5, 5]]
+  use_fine_scales: false
+  fine_overlap: 0.1
   nms_iou: 0.5
   include_best_if_none_accepted: false
 
@@ -28,6 +33,10 @@ regions:
   model_id: IDEA-Research/grounding-dino-tiny
   max_boxes: 20
   min_area_ratio: 0.002
+  yolo_model: yolov8n.pt
+  yolo_confidence: 0.25
+  yolo_iou: 0.45
+  yolo_vehicle_only: true
 
 decision:
   min_positive_regions: 1
@@ -62,6 +71,31 @@ video:
   sample_fps: 1.0
   extensions: [.mp4, .avi, .mov, .mkv, .webm]
 
+references:
+  excluded_terms: [sedan]
+  allowed_terms: [van, gazelle]
+  min_references_warning: 2
+
+nms:
+  method: hard
+  iou_threshold: 0.5
+  soft_sigma: 0.5
+  confidence_temperature: 1.0
+  min_confidence: 0.001
+
+tracking:
+  enabled: false
+  iou_threshold: 0.3
+  max_misses: 5
+  camera_compensation: false
+
+evaluation:
+  gt_annotations: null
+  save_metrics: false
+
+performance:
+  enabled: true
+
 zero_shot:
   mode: pairwise
   reject_threshold: null
@@ -70,7 +104,7 @@ zero_shot:
 adapters:
   vlm: gigachat
   llm: gigachat
-  gigachat_model: GigaChat-2-Pro
+  gigachat_model: GigaChat-3-Ultra
 
 visual:
   model_name: openai/clip-vit-base-patch32

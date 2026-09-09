@@ -27,8 +27,15 @@ class BBox:
         return (self.x1, self.y1, self.x2, self.y2)
 
 
+@dataclass(frozen=True)
+class ProposedBox:
+    box: BBox
+    confidence: float = 1.0
+    source: str = "unknown"
+
+
 class RegionProposer(Protocol):
-    def propose(self, image: Image.Image) -> list[BBox]:
+    def propose(self, image: Image.Image) -> list[BBox | ProposedBox]:
         """Return candidate boxes in pixel coordinates (inclusive-exclusive)."""
 
 
