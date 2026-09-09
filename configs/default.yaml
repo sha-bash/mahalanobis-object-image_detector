@@ -1,13 +1,13 @@
 detector:
-  sbert_model: all-MiniLM-L6-v2
+  sbert_model: all-mpnet-base-v2   # более мощная модель эмбеддингов
   min_cluster_size: 1
   regularization: 0.01
   covariance_mode: diagonal
-  threshold: max_margin
+  threshold: fixed                 # фиксированный порог для воспроизводимости
+  fixed_threshold: 1.8             # подобрано по распределению расстояний
   threshold_margin: 0.8
   threshold_floor: 0.0
   chi2_alpha: 0.95
-  fixed_threshold: 10.0
   quantile: 0.99
   negative_quantile: 0.05
   projector_path: null
@@ -19,14 +19,15 @@ grid:
   cols: 3
   overlap: 0.2
   extra_scales: [[2, 2]]
-  fine_scales: [[4, 4], [5, 5]]
-  use_fine_scales: false
-  fine_overlap: 0.1
+  # Включаем очень мелкие сетки, чтобы боксы были сопоставимы с GT (примерно 180×200 px)
+  fine_scales: [[8, 8], [10, 10], [12, 12], [14, 14]]
+  use_fine_scales: true
+  fine_overlap: 0.05               # минимальное перекрытие
   nms_iou: 0.5
   include_best_if_none_accepted: false
 
 regions:
-  backend: grid
+  backend: grid                    # отказываемся от YOLO, т.к. его боксы слишком большие
   text_prompt: null
   box_threshold: 0.25
   text_threshold: 0.25
@@ -34,13 +35,13 @@ regions:
   max_boxes: 20
   min_area_ratio: 0.002
   yolo_model: yolov8n.pt
-  yolo_confidence: 0.25
+  yolo_confidence: 0.05
   yolo_iou: 0.45
   yolo_vehicle_only: true
 
 decision:
   min_positive_regions: 1
-  top_k: 3
+  top_k: 1                         # оставляем только один лучший регион после постобработки
   aggregate: count
   uncertain_scale: 0.6
   target_match_gate: true
@@ -72,22 +73,22 @@ video:
   extensions: [.mp4, .avi, .mov, .mkv, .webm]
 
 references:
-  excluded_terms: [sedan]
-  allowed_terms: [van, gazelle]
+  excluded_terms: []
+  allowed_terms: []
   min_references_warning: 2
 
 nms:
-  method: hard
-  iou_threshold: 0.5
+  method: wbf                      # Weighted Boxes Fusion для слияния дублей
+  iou_threshold: 0.3
   soft_sigma: 0.5
   confidence_temperature: 1.0
   min_confidence: 0.001
 
 tracking:
-  enabled: false
+  enabled: true
   iou_threshold: 0.3
-  max_misses: 5
-  camera_compensation: false
+  max_misses: 1
+  camera_compensation: true
 
 evaluation:
   gt_annotations: null
@@ -109,9 +110,9 @@ adapters:
 visual:
   model_name: openai/clip-vit-base-patch32
   similarity_metric: cosine
-  top_k_before_vlm: 5
-  min_similarity: 0.0
-  use_visual_scores: false
+  top_k_before_vlm: 5              # увеличиваем, т.к. grid генерирует больше кандидатов
+  min_similarity: 0.4
+  use_visual_scores: true
   device: cpu
 
 target_label: target
