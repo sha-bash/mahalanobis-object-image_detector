@@ -13,12 +13,14 @@ from moid.calibration import optimize_threshold_from_csv
 from moid.adapters.base import VLMClient
 from moid.adapters.ocr import NullOCR, adjust_distance
 from moid.adapters.vlm import ContextualVLM, load_image
-from moid.captions import parse_caption, target_match_value
+from moid.captions import crop_coverage_value, parse_caption, target_match_value
 from moid.config import MoidConfig
 from moid.identity import IdentityProfile, build_identity_profile
 from moid.prompts import build_reference_context, build_search_context
 from moid.performance import StageTimer
 from moid.regions.base import BBox, ProposedBox, RegionProposer, crop_box
+from moid.regions.refine import expand_around_seeds
+from moid.regions.union import as_proposed, dedupe_proposed
 from moid.scoring import ScoredBox, apply_target_match_gate, select_frame_detections
 from moid.adapters.visual_encoder import VisualEncoder
 
@@ -54,6 +56,9 @@ class FewShotResult:
                 "proposal_source": s.proposal_source,
                 "confidence": s.confidence,
                 "track_id": s.track_id,
+                "visual_similarity": s.visual_similarity,
+                "crop_coverage": s.crop_coverage,
+                "fused_distance": s.fused_distance,
             }
 
         return {
@@ -120,8 +125,21 @@ def caption_references_with_paths(
         if text:
             captions.append(text)
             used_paths.append(path)
+    leftover_incompatible = [
+        str(path)
+        for path, text in zip(used_paths, captions)
+        if any(term in f"{path.name} {text}".casefold() for term in excluded)
+    ]
+    if leftover_incompatible:
+        raise RuntimeError(
+            "Incompatible references remain after filtering: "
+            + ", ".join(leftover_incompatible)
+        )
     if not captions:
-        raise RuntimeError("No valid target references remain after filtering")
+        raise RuntimeError(
+            "No valid target references remain after filtering. "
+            "Check excluded_terms/allowed_terms and reference filenames/captions."
+        )
     if len(captions) < cfg.references.min_references_warning:
         logger.warning(
             "Only %d valid reference(s) remain; covariance and threshold may be unstable",
@@ -205,6 +223,9 @@ def detect_on_image(
     search_vlm = ContextualVLM(
         vlm,
         build_search_context(profile.as_line(), cfg.hints.text),
+        max_image_side=(
+            cfg.adapters.ollama_crop_max_side if cfg.adapters.vlm == "ollama" else None
+        ),
     )
     if proposer is None:
         prompt = cfg.regions.text_prompt or profile.object
@@ -214,6 +235,16 @@ def detect_on_image(
     target_image = load_image(target)
     with timer.measure("proposals"):
         boxes = proposer.propose(target_image)
+        if cfg.refine.enabled:
+            seeds = as_proposed(boxes)
+            refined = expand_around_seeds(
+                seeds[: max(1, cfg.refine.max_seeds)],
+                width=target_image.width,
+                height=target_image.height,
+                scales=tuple(cfg.refine.scales),
+                shifts=tuple(cfg.refine.shifts),
+            )
+            boxes = dedupe_proposed([*seeds, *refined])
     scored = _score_regions(
         target_image,
         boxes,
@@ -263,6 +294,23 @@ def detect_on_image(
     )
 
 
+def _encode_crops(encoder, images: list[Image.Image], batch_size: int) -> np.ndarray:
+    if hasattr(encoder, "encode_batch"):
+        return np.asarray(encoder.encode_batch(images, batch_size=batch_size))
+    return np.asarray([encoder.encode(image) for image in images])
+
+
+def _cosine_reduce(crop_emb: np.ndarray, ref_emb: np.ndarray, reduce: str) -> np.ndarray:
+    crop_norm = np.linalg.norm(crop_emb, axis=1, keepdims=True)
+    crop_norm[crop_norm == 0] = 1e-9
+    ref_norm = np.linalg.norm(ref_emb, axis=1, keepdims=True)
+    ref_norm[ref_norm == 0] = 1e-9
+    sims = np.dot(crop_emb / crop_norm, (ref_emb / ref_norm).T)
+    if reduce == "max":
+        return sims.max(axis=1)
+    return sims.mean(axis=1)
+
+
 def _score_regions(
     image: Image.Image,
     boxes: list[BBox | ProposedBox],
@@ -277,83 +325,87 @@ def _score_regions(
     timer: StageTimer | None = None,
 ) -> list[ScoredBox]:
     timer = timer or StageTimer(enabled=False)
-    proposals = [
-        item if isinstance(item, ProposedBox) else ProposedBox(item, 1.0, "grid")
-        for item in boxes
-    ]
+    proposals = as_proposed(boxes, "grid")
     plain_boxes = [item.box for item in proposals]
     captions: list[str] = []
     valid_idx: list[int] = []
     results: list[ScoredBox | None] = [None] * len(plain_boxes)
     crops: dict[int, Image.Image] = {}
+    similarities = np.full(len(plain_boxes), np.nan, dtype=float)
 
-    # Precompute crops for all boxes (needed for visual filtering too)
     for i, box in enumerate(plain_boxes):
-        crop = crop_box(image, box)
-        crops[i] = crop
+        crops[i] = crop_box(image, box)
 
-    # Determine which boxes to process with VLM
     selected_indices = list(range(len(plain_boxes)))
-
     if visual_encoder is not None and reference_visual_embeddings is not None and len(plain_boxes) > 0:
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info("Visual pre-filter: %d boxes -> selecting top %d (min_sim=%.2f)",
-                    len(boxes), config.visual.top_k_before_vlm, config.visual.min_similarity)
-        # Compute visual embeddings for all crops
+        logger.info(
+            "Visual pre-filter: %d boxes -> selecting top %d (min_sim=%.2f, reduce=%s)",
+            len(boxes),
+            config.visual.top_k_before_vlm,
+            config.visual.min_similarity,
+            config.visual.similarity_reduce,
+        )
         visual_started = time.perf_counter()
-        crop_embeddings = [visual_encoder.encode(crops[i]) for i in selected_indices]
-        ref_emb = np.asarray(reference_visual_embeddings)  # shape (n_refs, dim)
-
-        # Compute cosine similarity between each crop and each reference
-        # Normalize embeddings for cosine similarity
-        crop_emb = np.asarray(crop_embeddings)
-        crop_norm = np.linalg.norm(crop_emb, axis=1, keepdims=True)
-        crop_norm[crop_norm == 0] = 1e-9
-        crop_emb_norm = crop_emb / crop_norm
-
-        ref_norm = np.linalg.norm(ref_emb, axis=1, keepdims=True)
-        ref_norm[ref_norm == 0] = 1e-9
-        ref_emb_norm = ref_emb / ref_norm
-
-        sims = np.dot(crop_emb_norm, ref_emb_norm.T)  # shape (n_crops, n_refs)
-        mean_sim = sims.mean(axis=1)
-
-        # Select top_k_before_vlm regions (and optionally those above min_similarity)
+        crop_emb = _encode_crops(
+            visual_encoder,
+            [crops[i] for i in selected_indices],
+            config.visual.clip_batch_size,
+        )
+        similarities = _cosine_reduce(
+            np.asarray(crop_emb),
+            np.asarray(reference_visual_embeddings),
+            config.visual.similarity_reduce,
+        )
         top_k = config.visual.top_k_before_vlm
         min_sim = config.visual.min_similarity
-
         if top_k > 0 and top_k < len(plain_boxes):
-            # Get indices of top_k highest mean_sim
-            top_indices = np.argsort(mean_sim)[-top_k:]
+            top_indices = np.argsort(similarities)[-top_k:]
             selected_indices = sorted(top_indices.tolist())
         if min_sim > 0.0:
-            # Additional filter: only keep indices with mean_sim >= min_sim
-            selected_indices = [i for i in selected_indices if mean_sim[i] >= min_sim]
+            selected_indices = [i for i in selected_indices if similarities[i] >= min_sim]
         timer.add("clip_filter", (time.perf_counter() - visual_started) * 1000.0)
 
-    # Now process selected indices with VLM
-    vlm_started = time.perf_counter()
-    for i in selected_indices:
-        crop = crops[i]
-        text = (vlm.describe(crop) or "").strip()
-        if not text:
+    if config.visual.skip_vlm:
+        vlm_started = time.perf_counter()
+        for i in selected_indices:
+            sim = float(similarities[i]) if np.isfinite(similarities[i]) else 0.0
+            dist = 1.0 - sim
+            fused = dist - (config.visual.fusion_weight * sim if config.visual.use_visual_scores else 0.0)
             results[i] = ScoredBox(
                 box=plain_boxes[i],
-                distance=float("inf"),
-                threshold=float("nan"),
-                accepted=False,
+                distance=float(dist),
+                threshold=1.0 - config.visual.min_similarity,
+                accepted=sim >= config.visual.min_similarity,
                 caption="",
-                failed=True,
+                failed=False,
+                target_match="yes" if sim >= config.visual.min_similarity else "no",
                 proposal_confidence=proposals[i].confidence,
                 proposal_source=proposals[i].source,
+                visual_similarity=sim,
+                fused_distance=fused,
             )
-            continue
-        captions.append(text)
-        valid_idx.append(i)
-    timer.add("vlm", (time.perf_counter() - vlm_started) * 1000.0)
+        timer.add("vlm", (time.perf_counter() - vlm_started) * 1000.0)
+    else:
+        vlm_started = time.perf_counter()
+        for i in selected_indices:
+            text = (vlm.describe(crops[i]) or "").strip()
+            if not text:
+                results[i] = ScoredBox(
+                    box=plain_boxes[i],
+                    distance=float("inf"),
+                    threshold=float("nan"),
+                    accepted=False,
+                    caption="",
+                    failed=True,
+                    proposal_confidence=proposals[i].confidence,
+                    proposal_source=proposals[i].source,
+                    visual_similarity=_finite_or_none(similarities, i),
+                )
+                continue
+            captions.append(text)
+            valid_idx.append(i)
+        timer.add("vlm", (time.perf_counter() - vlm_started) * 1000.0)
 
-    # For non-selected indices, mark as failed with some default distance
     for i in range(len(plain_boxes)):
         if i not in selected_indices and results[i] is None:
             results[i] = ScoredBox(
@@ -365,6 +417,7 @@ def _score_regions(
                 failed=True,
                 proposal_confidence=proposals[i].confidence,
                 proposal_source=proposals[i].source,
+                visual_similarity=_finite_or_none(similarities, i),
             )
 
     if captions:
@@ -388,6 +441,10 @@ def _score_regions(
                     match_scale=config.ocr.match_scale,
                     mismatch_scale=config.ocr.mismatch_scale,
                 )
+            vis = _finite_or_none(similarities, i)
+            fused = float(dist)
+            if config.visual.use_visual_scores and vis is not None:
+                fused = float(dist) - config.visual.fusion_weight * vis
             results[i] = ScoredBox(
                 box=plain_boxes[i],
                 distance=float(dist),
@@ -400,8 +457,18 @@ def _score_regions(
                 ocr_text=observed,
                 proposal_confidence=proposals[i].confidence,
                 proposal_source=proposals[i].source,
+                visual_similarity=vis,
+                crop_coverage=crop_coverage_value(fields),
+                fused_distance=fused,
             )
     return [s for s in results if s is not None]
+
+
+def _finite_or_none(values: np.ndarray, index: int) -> float | None:
+    if index >= len(values):
+        return None
+    value = float(values[index])
+    return value if np.isfinite(value) else None
 
 
 def _ocr_if_needed(fields, crop, ocr, profile, config) -> str | None:

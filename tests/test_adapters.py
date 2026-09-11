@@ -169,7 +169,7 @@ def test_default_yaml_adapters():
     cfg = load_config("configs/default.yaml")
     assert cfg.adapters.vlm == "gigachat"
     assert cfg.adapters.llm == "gigachat"
-    assert cfg.adapters.gigachat_model == "GigaChat-2-Pro"
+    assert cfg.adapters.gigachat_model == "GigaChat-3-Ultra"
     assert cfg.detector.threshold_margin == 0.8
     assert cfg.grid.extra_scales == [[2, 2]]
     assert cfg.grid.include_best_if_none_accepted is False

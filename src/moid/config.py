@@ -17,9 +17,9 @@ from mcd.modeling.thresholds import (
 CovarianceMode = Literal["diagonal", "full"]
 ThresholdKind = Literal["max_margin", "chi2", "fixed", "quantile", "negative_quantile"]
 ZeroShotMode = Literal["pairwise", "one_shot"]
-VlmKind = Literal["stub", "gigachat"]
-LlmKind = Literal["stub", "gigachat"]
-RegionBackend = Literal["grid", "dino", "hybrid", "yolo"]
+VlmKind = Literal["stub", "gigachat", "ollama"]
+LlmKind = Literal["stub", "gigachat", "ollama"]
+RegionBackend = Literal["grid", "dino", "dinov2", "hybrid", "yolo", "yolo_grid"]
 AggregateKind = Literal["count", "min_distance", "mean_top_k"]
 OcrBackend = Literal["none", "stub", "easyocr"]
 PromptSchema = Literal["generic", "generic+vehicle"]
@@ -75,6 +75,7 @@ class RegionsConfig:
     yolo_confidence: float = 0.25
     yolo_iou: float = 0.45
     yolo_vehicle_only: bool = True
+    max_yolo_area_ratio: float = 0.12
 
 
 @dataclass
@@ -167,6 +168,18 @@ class VisualConfig:
     min_similarity: float = 0.0
     use_visual_scores: bool = False
     device: str = "cpu"
+    similarity_reduce: Literal["mean", "max"] = "max"
+    clip_batch_size: int = 4
+    fusion_weight: float = 0.5
+    skip_vlm: bool = False
+
+
+@dataclass
+class RefineConfig:
+    enabled: bool = False
+    scales: list[float] = field(default_factory=lambda: [0.7, 1.0, 1.3])
+    shifts: list[float] = field(default_factory=lambda: [-0.15, 0.0, 0.15])
+    max_seeds: int = 8
 
 
 @dataclass
@@ -181,6 +194,18 @@ class AdapterConfig:
     vlm: VlmKind = "stub"
     llm: LlmKind = "stub"
     gigachat_model: str = "GigaChat-2-Pro"
+    ollama_host: str = "http://localhost:11434"
+    ollama_vlm_model: str = "qwen2.5vl:3b"
+    ollama_llm_model: str = "qwen2.5vl:3b"
+    ollama_timeout_sec: float = 180.0
+    ollama_keep_alive: str = "5m"
+    ollama_num_ctx: int = 2048
+    ollama_num_predict: int = 512
+    ollama_max_image_side: int = 768
+    ollama_crop_max_side: int = 512
+    ollama_jpeg_quality: int = 85
+    ollama_cache: bool = True
+    ollama_cache_dir: str = ".cache/ollama_captions"
 
 
 @dataclass
@@ -198,6 +223,7 @@ class MoidConfig:
     adapters: AdapterConfig = field(default_factory=AdapterConfig)
     target_label: str = "target"
     visual: VisualConfig = field(default_factory=VisualConfig)
+    refine: RefineConfig = field(default_factory=RefineConfig)
     references: ReferenceFilterConfig = field(default_factory=ReferenceFilterConfig)
     nms: NmsConfig = field(default_factory=NmsConfig)
     tracking: TrackingConfig = field(default_factory=TrackingConfig)
@@ -237,6 +263,7 @@ def load_config(path: str | Path | None) -> MoidConfig:
         adapters=_from_dict(AdapterConfig, raw.get("adapters")),
         target_label=str(raw.get("target_label", "target")),
         visual=_from_dict(VisualConfig, raw.get("visual", {})),
+        refine=_from_dict(RefineConfig, raw.get("refine", {})),
         references=_from_dict(ReferenceFilterConfig, raw.get("references")),
         nms=_from_dict(NmsConfig, raw.get("nms")),
         tracking=_from_dict(TrackingConfig, raw.get("tracking")),

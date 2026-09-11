@@ -38,6 +38,21 @@ def target_match_value(text_or_fields: str | dict[str, str]) -> MatchValue:
     return "unknown"
 
 
+def crop_coverage_value(text_or_fields: str | dict[str, str]) -> str:
+    if isinstance(text_or_fields, dict):
+        raw = str(text_or_fields.get("crop_coverage", "unknown"))
+    else:
+        raw = parse_caption(text_or_fields).get("crop_coverage", "unknown")
+    token = raw.strip().lower()
+    if token in {"full", "complete", "entire"}:
+        return "full"
+    if token in {"partial", "cropped", "cut", "clipped"}:
+        return "partial"
+    if token in {"none", "no", "empty", "background"}:
+        return "none"
+    return "unknown"
+
+
 def looks_like_vehicle(fields: dict[str, str]) -> bool:
     vehicle_class = fields.get("vehicle_class", "").lower()
     if vehicle_class in {"n/a", "na", "non-vehicle", "none", "unknown", ""}:

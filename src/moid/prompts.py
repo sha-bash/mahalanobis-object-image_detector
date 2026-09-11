@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 GENERIC_KEYS = (
@@ -16,6 +17,7 @@ GENERIC_KEYS = (
     "distinctive_features",
     "markings",
     "text_on_object",
+    "crop_coverage",
 )
 
 VEHICLE_KEYS = (
@@ -62,6 +64,8 @@ Rules:
 - If the object is not a vehicle, set vehicle_class: n/a (or non-vehicle) and the remaining vehicle fields to n/a. Do not invent a make.
 - If the object is a vehicle, set vehicle_class to passenger car, SUV, truck, off-road buggy, special vehicle, motorcycle, or unknown. Fill brand and model only when a badge, grille, or silhouette supports them; otherwise unknown.
 - distinctive_features and markings must be specific to THIS image. Never copy identity text from the prompt unless it is visible here.
+- crop_coverage is full, partial, or none. Use full only when the dominant object is completely inside the crop.
+- Describe only what is visible in THIS crop. Do not copy a reference profile line.
 - No extra sentences, markdown, or commentary.
 """
 
@@ -82,6 +86,8 @@ Rules:
 - If the object is not a vehicle, set vehicle_class: n/a (or non-vehicle) and the remaining vehicle fields to n/a. Do not invent a make.
 - If the object is a vehicle, set vehicle_class to passenger car, SUV, truck, off-road buggy, special vehicle, motorcycle, or unknown. Fill brand and model only when a badge, grille, or silhouette supports them; otherwise unknown.
 - distinctive_features and markings must be specific to THIS image. Never copy identity text from the prompt unless it is visible here.
+- crop_coverage is full, partial, or none. Use full only when the dominant object is completely inside the crop.
+- Describe only what is visible in THIS crop. Do not copy a reference profile line.
 - No extra sentences, markdown, or commentary.
 """
 
@@ -164,6 +170,32 @@ def schema_line_from_fields(values: dict[str, Any]) -> str:
     return "; ".join(parts)
 
 
+def attribute_json_schema() -> dict[str, Any]:
+    return {
+        "type": "object",
+        "properties": {key: {"type": "string"} for key in ATTRIBUTE_KEYS},
+        "required": list(ATTRIBUTE_KEYS),
+        "additionalProperties": False,
+    }
+
+
+def caption_from_json_payload(payload: Any) -> str:
+    if isinstance(payload, str):
+        text = payload.strip()
+        if text.startswith("```"):
+            text = text.strip("`")
+            if text.lower().startswith("json"):
+                text = text[4:].strip()
+        payload = json.loads(text)
+    if not isinstance(payload, dict):
+        raise ValueError("VLM JSON response must be an object")
+    values = {key: str(payload.get(key, "unknown") or "unknown") for key in ATTRIBUTE_KEYS}
+    missing = [key for key in ATTRIBUTE_KEYS if key not in payload]
+    if missing:
+        raise ValueError(f"VLM JSON missing fields: {', '.join(missing)}")
+    return schema_line_from_fields(values)
+
+
 def _is_aerial_context(hints_text: str = "") -> bool:
     """Detect if the context suggests aerial/drone imagery."""
     if not hints_text:
@@ -212,11 +244,13 @@ def build_search_context(profile_line: str, hints_text: str = "") -> str:
 {profile_line}
 
 First classify the visible object independently, then compare it with that profile.
-Set target_match: yes only with strong evidence in THIS crop (unique markings/text, or several distinctive features together).
-Set target_match: no when the class is incompatible or it is clearly a different instance.
-If evidence is incomplete, set target_match: uncertain. Do not upgrade uncertain to yes.
+Do not copy the profile line. Fill attributes from THIS crop only.
+Set crop_coverage: full, partial, or none before deciding target_match.
+Set target_match: yes only with strong evidence in THIS crop (unique markings/text, or several distinctive features together) and crop_coverage: full.
+Set target_match: no when the class is incompatible, coverage is none, or it is clearly a different instance.
+If evidence is incomplete or the object is clipped, set target_match: uncertain. Do not upgrade uncertain to yes.
 Do NOT copy brand, model, markings, or text_on_object from the target profile unless they are visible on this crop.
-If there is no relevant object, set target_match: no; category: background.
+If there is no relevant object, set target_match: no; category: background; crop_coverage: none.
 {aerial_instructions}
 {hint_line}
 """.strip()

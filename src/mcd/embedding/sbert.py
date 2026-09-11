@@ -6,11 +6,11 @@ from mcd.embedding.base import Embedder
 
 
 class SBERT(Embedder):
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+    def __init__(self, model_name: str = "all-MiniLM-L6-v2", *, local_files_only: bool = False):
         from sentence_transformers import SentenceTransformer
 
         self.model_name = model_name
-        self.model = SentenceTransformer(model_name)
+        self.model = SentenceTransformer(model_name, local_files_only=local_files_only)
 
     def embed(self, texts: List[str]) -> np.ndarray:
         return self.model.encode(texts, convert_to_numpy=True)

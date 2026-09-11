@@ -1,8 +1,21 @@
-from moid.adapters.base import LLMClient, VLMClient
-from moid.adapters.llm import GigaChatLLM, StubLLM
-from moid.adapters.ocr import EasyOCRClient, NullOCR, StubOCR
-from moid.adapters.vlm import ContextualVLM, GigaChatVLM, StubVLM, load_image
-from moid.adapters.visual_encoder import VisualEncoder
+"""Lazy exports: importing the Ollama HTTP client must not load PyTorch."""
+from importlib import import_module
+
+_MODULES = {
+    'LLMClient': 'base', 'VLMClient': 'base',
+    'GigaChatLLM': 'llm', 'StubLLM': 'llm',
+    'EasyOCRClient': 'ocr', 'NullOCR': 'ocr', 'StubOCR': 'ocr',
+    'ContextualVLM': 'vlm', 'GigaChatVLM': 'vlm', 'StubVLM': 'vlm',
+    'load_image': 'vlm', 'VisualEncoder': 'visual_encoder',
+}
+
+
+def __getattr__(name):
+    if name not in _MODULES:
+        raise AttributeError(f'module {__name__!r} has no attribute {name!r}')
+    value = getattr(import_module(f'{__name__}.{_MODULES[name]}'), name)
+    globals()[name] = value
+    return value
 
 __all__ = [
     "VLMClient",

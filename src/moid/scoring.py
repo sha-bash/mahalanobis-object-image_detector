@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import math
 
-from moid.captions import target_match_value
+from moid.captions import crop_coverage_value, target_match_value
 from moid.regions.base import BBox
 
 
@@ -23,6 +23,9 @@ class ScoredBox:
     proposal_source: str = "unknown"
     confidence: float | None = None
     track_id: int | None = None
+    visual_similarity: float | None = None
+    crop_coverage: str = "unknown"
+    fused_distance: float | None = None
 
     @property
     def score(self) -> float:
@@ -42,9 +45,15 @@ def iou(a: BBox, b: BBox) -> float:
     return inter / union
 
 
+def rank_key(box: ScoredBox) -> tuple[float, float, float]:
+    primary = box.fused_distance if box.fused_distance is not None else box.distance
+    similarity = box.visual_similarity if box.visual_similarity is not None else 0.0
+    return (primary, box.distance, -similarity)
+
+
 def nms(boxes: list[ScoredBox], iou_threshold: float = 0.5) -> list[ScoredBox]:
     """Keep lower-distance boxes; drop overlaps above IoU threshold."""
-    ordered = sorted(boxes, key=lambda s: s.distance)
+    ordered = sorted(boxes, key=rank_key)
     kept: list[ScoredBox] = []
     for cand in ordered:
         if cand.failed:
@@ -174,26 +183,25 @@ def apply_target_match_gate(
     updated: list[ScoredBox] = []
     for box in boxes:
         match = box.target_match or target_match_value(box.caption)
+        coverage = box.crop_coverage or crop_coverage_value(box.caption)
+        if gated and coverage == "none":
+            match = "no"
+        elif gated and coverage == "partial" and match == "yes":
+            match = "uncertain"
         thr = effective_threshold(box.threshold, match, uncertain_scale=uncertain_scale, gated=gated)
         accepted = (not box.failed) and box.distance <= thr and match != "no"
         if gated and match == "no":
             accepted = False
+        if gated and coverage in {"none", "partial"}:
+            accepted = False
         updated.append(
-            ScoredBox(
-                box=box.box,
-                distance=box.distance,
-                threshold=box.threshold,
+            replace(
+                box,
+                threshold=thr,
                 accepted=accepted,
-                caption=box.caption,
-                failed=box.failed,
                 target_match=match,
-                raw_distance=box.raw_distance,
-                ocr_text=box.ocr_text,
+                crop_coverage=coverage,
                 visualization_only=False,
-                proposal_confidence=box.proposal_confidence,
-                proposal_source=box.proposal_source,
-                confidence=box.confidence,
-                track_id=box.track_id,
             )
         )
     return updated
@@ -247,7 +255,8 @@ def select_frame_detections(
         gated_pool = suppress(accepted_only if accepted_only else usable)
 
     accepted = [b for b in gated_pool if b.accepted]
-    ranked = sorted(gated_pool, key=lambda s: s.distance)
+    ranked = sorted(gated_pool, key=rank_key)
+    accepted_ranked = sorted(accepted, key=rank_key)
     top = ranked[: max(1, top_k)]
     frame_positive = False
     if aggregate == "min_distance" and top:
@@ -259,25 +268,8 @@ def select_frame_detections(
     else:
         frame_positive = len(accepted) >= max(1, min_positive_regions)
 
-    detections = list(accepted) if frame_positive else []
+    detections = accepted_ranked[: max(1, top_k)] if frame_positive else []
     if not detections and include_best_if_none_accepted and ranked:
         best = ranked[0]
-        detections = [
-            ScoredBox(
-                box=best.box,
-                distance=best.distance,
-                threshold=best.threshold,
-                accepted=False,
-                caption=best.caption,
-                failed=best.failed,
-                target_match=best.target_match,
-                raw_distance=best.raw_distance,
-                ocr_text=best.ocr_text,
-                visualization_only=True,
-                proposal_confidence=best.proposal_confidence,
-                proposal_source=best.proposal_source,
-                confidence=best.confidence,
-                track_id=best.track_id,
-            )
-        ]
+        detections = [replace(best, accepted=False, visualization_only=True)]
     return detections, frame_positive

@@ -1,0 +1,27 @@
+# Existing semantic pipeline; separate from python -m moid.instance.
+# Load a small VLM through Ollama and release it after each call on 8 GB RAM.
+detector:
+  sbert_model: all-MiniLM-L6-v2
+  covariance_mode: diagonal
+  threshold: fixed
+  fixed_threshold: 1.8  # Starting point, NOT calibrated for the local VLM.
+adapters:
+  vlm: ollama
+  llm: ollama
+  ollama_vlm_model: qwen3-vl:2b
+  ollama_llm_model: qwen3-vl:2b
+  ollama_timeout_sec: 600
+  ollama_keep_alive: '0'
+  ollama_num_ctx: 4096
+  ollama_num_predict: 512
+  ollama_max_image_side: 384
+  ollama_crop_max_side: 384
+regions:
+  backend: grid
+visual:
+  model_name: null
+  device: cpu
+paths:
+  refs: data/refs
+  videos: data/search
+  reports: reports

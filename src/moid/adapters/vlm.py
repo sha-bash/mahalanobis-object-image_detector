@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import json
 import logging
 from pathlib import Path
 from typing import Any
@@ -9,7 +10,14 @@ from PIL import Image
 
 from moid.adapters.base import ImageLike
 from moid.adapters.gigachat_client import build_gigachat
-from moid.prompts import SCHEMA_LINE, VLM_SYSTEM_PROMPT, compose_vlm_text
+from moid.adapters.ollama_client import ollama_chat, resolve_host, resolve_vlm_model
+from moid.prompts import (
+    SCHEMA_LINE,
+    VLM_SYSTEM_PROMPT,
+    attribute_json_schema,
+    caption_from_json_payload,
+    compose_vlm_text,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,10 +51,18 @@ class StubVLM:
         return self.fallback
 
 
-def _image_to_jpeg_bytes(image: ImageLike) -> bytes:
+def _image_to_jpeg_bytes(
+    image: ImageLike,
+    *,
+    quality: int = 90,
+    max_side: int | None = None,
+) -> bytes:
     pil = load_image(image)
+    if max_side and max(pil.size) > max_side:
+        pil = pil.copy()
+        pil.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
     buf = io.BytesIO()
-    pil.save(buf, format="JPEG", quality=90)
+    pil.save(buf, format="JPEG", quality=quality)
     return buf.getvalue()
 
 
@@ -75,18 +91,29 @@ class ContextualVLM:
         inner: Any,
         context: str,
         system_prompt: str | None = None,
+        max_image_side: int | None = None,
     ) -> None:
         self._inner = inner
         self.context = context
         self.system_prompt = system_prompt
+        self.max_image_side = max_image_side
 
     def describe(self, image: ImageLike) -> str:
+        kwargs: dict[str, Any] = {
+            "context": self.context,
+            "system_prompt": self.system_prompt,
+        }
+        if self.max_image_side is not None:
+            kwargs["max_image_side"] = self.max_image_side
         try:
-            return self._inner.describe(
-                image, context=self.context, system_prompt=self.system_prompt
-            )
+            return self._inner.describe(image, **kwargs)
         except TypeError:
-            return self._inner.describe(image)
+            try:
+                return self._inner.describe(
+                    image, context=self.context, system_prompt=self.system_prompt
+                )
+            except TypeError:
+                return self._inner.describe(image)
 
 
 class GigaChatVLM:
@@ -152,3 +179,135 @@ class GigaChatVLM:
                     client.delete_file(file_id)
                 except Exception:
                     logger.warning("GigaChatVLM: failed to delete uploaded file %s", file_id)
+
+
+class OllamaVLM:
+    """Caption images with a local Ollama vision model via `/api/chat`."""
+
+    def __init__(
+        self,
+        *,
+        host: str | None = None,
+        model: str | None = None,
+        timeout_sec: float = 180.0,
+        keep_alive: str = "5m",
+        num_ctx: int = 2048,
+        num_predict: int = 512,
+        max_image_side: int = 768,
+        jpeg_quality: int = 85,
+        cache: bool = True,
+        cache_dir: str | Path | None = None,
+        chat_fn=None,
+    ) -> None:
+        self.host = resolve_host(host)
+        self.model = resolve_vlm_model(model)
+        self.timeout_sec = timeout_sec
+        self.keep_alive = keep_alive
+        self.num_ctx = num_ctx
+        self.num_predict = num_predict
+        self.max_image_side = max_image_side
+        self.jpeg_quality = jpeg_quality
+        self.cache_enabled = cache
+        self.cache_dir = Path(cache_dir) if cache_dir else None
+        self._chat = chat_fn or ollama_chat
+        self._memory_cache: dict[str, str] = {}
+
+    def describe(
+        self,
+        image: ImageLike,
+        context: str = "",
+        system_prompt: str | None = None,
+        max_image_side: int | None = None,
+    ) -> str:
+        prompt = compose_vlm_text(
+            context,
+            system_prompt=system_prompt,
+            few_shot=system_prompt is None,
+        )
+        side = max_image_side if max_image_side is not None else self.max_image_side
+        try:
+            jpeg = _image_to_jpeg_bytes(image, quality=self.jpeg_quality, max_side=side)
+            cache_key = self._cache_key(prompt, jpeg)
+            cached = self._cache_get(cache_key)
+            if cached is not None:
+                return cached
+            caption = self._describe_jpeg(jpeg, prompt)
+            if caption:
+                self._cache_put(cache_key, caption)
+            return caption
+        except Exception:
+            logger.exception("OllamaVLM request failed")
+            return ""
+
+    def _describe_jpeg(self, jpeg: bytes, prompt: str) -> str:
+        import base64
+
+        encoded = base64.b64encode(jpeg).decode("ascii")
+        messages = [{"role": "user", "content": prompt, "images": [encoded]}]
+        schema = attribute_json_schema()
+        raw = self._invoke(messages, schema)
+        try:
+            return caption_from_json_payload(raw)
+        except (ValueError, json.JSONDecodeError):
+            retry_messages = [
+                *messages,
+                {"role": "assistant", "content": raw},
+                {
+                    "role": "user",
+                    "content": "Return only valid JSON matching the required schema. Fill every field.",
+                },
+            ]
+            raw = self._invoke(retry_messages, schema)
+            try:
+                return caption_from_json_payload(raw)
+            except (ValueError, json.JSONDecodeError):
+                logger.error("OllamaVLM returned a caption that does not match the schema")
+                return ""
+
+    def _invoke(self, messages: list[dict], schema: dict) -> str:
+        return self._chat(
+            host=self.host,
+            model=self.model,
+            messages=messages,
+            timeout_sec=self.timeout_sec,
+            temperature=0.0,
+            num_predict=self.num_predict,
+            num_ctx=self.num_ctx,
+            keep_alive=self.keep_alive,
+            response_format=schema,
+        )
+
+    def _cache_key(self, prompt: str, jpeg: bytes) -> str:
+        import hashlib
+
+        digest = hashlib.sha256()
+        digest.update(self.model.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(prompt.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(jpeg)
+        return digest.hexdigest()
+
+    def _cache_get(self, key: str) -> str | None:
+        if not self.cache_enabled:
+            return None
+        if key in self._memory_cache:
+            return self._memory_cache[key]
+        if self.cache_dir is None:
+            return None
+        path = self.cache_dir / f"{key}.txt"
+        if path.is_file():
+            text = path.read_text(encoding="utf-8").strip()
+            if text:
+                self._memory_cache[key] = text
+                return text
+        return None
+
+    def _cache_put(self, key: str, caption: str) -> None:
+        if not self.cache_enabled:
+            return
+        self._memory_cache[key] = caption
+        if self.cache_dir is None:
+            return
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        (self.cache_dir / f"{key}.txt").write_text(caption, encoding="utf-8")

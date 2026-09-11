@@ -1,228 +1,110 @@
-# mahalanobis-object-image_detector
+# Поиск экземпляра объекта на видео
 
-Few-shot и zero-shot поиск объектов: **референсные фото** задают идентичность, VLM описывает видимые атрибуты по-английски, Sentence-BERT строит эмбеддинги, скоринг — расстояние Махаланобиса (`mcd`).
+Локальная программа находит объект по одному референсному фото и сохраняет **видео с рамкой**. Основной семантический этап: **описание VLM → SBERT → расстояние Махаланобиса**. Кандидат с расстоянием выше порога не допускается к сопровождению.
 
-Репозиторий **не изменяет** [mahalanobis-concept-drift](https://github.com/sha-bash/mahalanobis-concept-drift). Урезанная копия ядра лежит в `src/mcd`.
+## Запуск одной командой — Windows 10/11 x64
 
-## Идея
+Скопируйте репозиторий, откройте PowerShell в его папке и выполните:
 
-Искомый объект — не захардкоженная марка, а то, что видно на эталонах (автомобиль, дерево, упаковка и т.д.). Опционально пользователь уточняет описание в терминале; LLM может задать короткие вопросы по полям `unknown`. Поиск идёт по второй папке кадров. Отчёт пишется в `reports/`.
-
-## Установка
-
-Python 3.11+.
-
-```bash
-pip install -e ".[dev]"
-pip install -e ".[gigachat]"   # GigaChat Vision / LLM
-pip install -e ".[ocr]"        # EasyOCR (опционально)
-pip install -e ".[dino]"       # Grounding DINO (опционально)
-pip install -e ".[video,visual]" # OpenCV + CLIP для обработки видео
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\run.ps1
 ```
 
-Скопируйте `.env.example` в `.env` и задайте `GIGACHAT_CREDENTIALS`. CLI подхватывает `.env` через `python-dotenv` (extra `[gigachat]`).
+Программа запросит пути к вашему фото и видео. Фото должно содержать крупно обрезанный объект без нарисованной рамки. Исходные фото и видео не входят в репозиторий.
 
-## Данные демо
+Первый запуск автоматически:
 
-- `data/refs/` — эталоны
-- `data/search/` — кадры поиска
-- `reports/` — выходы прогонов (не коммитятся)
+1. Находит Python; при его отсутствии устанавливает Python 3.11 через WinGet для текущего пользователя.
+2. Создаёт `.venv` и устанавливает зависимости, включая **CPU-версию PyTorch** и OpenCV.
+3. Использует установленную Ollama или загружает официальную portable-версию в `models/ollama`, проверяя SHA-256 архива.
+4. Подготавливает Qwen3.5 0.8B и SBERT `all-MiniLM-L6-v2`.
+5. Обрабатывает видео и печатает путь к результату.
 
-## CLI
+При отсутствии WinGet установите [Python 3.11](https://www.python.org/downloads/) и повторите ту же команду. Для первого запуска нужен интернет и несколько гигабайт свободного места. Последующие запуски используют локальные модели. Первый запуск может занять значительно больше времени, чем последующие. Проверенная среда — Windows x64, Python 3.11, CPU; дискретная видеокарта не требуется. На 8 ГБ RAM обработка не работает в реальном времени.
 
-### Подкоманды
+Запуск с путями без вопросов:
 
-| Команда | Назначение |
-|---------|-----------|
-| `moid search` | Интерактивный или пакетный поиск объектов по изображениям |
-| `moid search-video` | Интерактивный поиск объекта во всех видео папки |
-| `moid few-shot` | Поиск объекта на одном целевом изображении |
-| `moid zero-shot` | Поиск по текстовому запросу среди набора изображений |
-
-### `moid search` — поиск по изображениям
-
-Интерактивный режим (этапы 0–9 в терминале):
-
-```bash
-moid search --config configs/default.yaml
+```powershell
+.\run.ps1 -Reference 'D:\My Data\object.jpg' -Video 'D:\My Data\video.mp4'
 ```
 
-Enter подставляет `data/refs` и `data/search`. После подписей референсов: «желаете дополнить описание? yes/no».
+`-ReferenceBox @(x1,y1,x2,y2)` задаёт область объекта на исходном фото. Для уже обрезанного фото этот параметр не нужен. `-SceneContext` — необязательный общий контекст съёмки, например аэросъёмка; он не должен подсказывать идентичность цели. По умолчанию программа не предполагает конкретный тип объекта или ракурс.
 
-Без вопросов (CI / скрипты):
+Только установка и подготовка моделей:
 
-```bash
-moid search --refs data/refs --search data/search --non-interactive --no-refine --out reports --config configs/default.yaml
-moid search --stub --refs tests/fixtures --search tests/fixtures --non-interactive --no-refine
+```powershell
+.\run.ps1 -SetupOnly
 ```
 
-| Флаг | Назначение |
-|------|-----------|
-| `--refs` | Папка с референсными фото (эталонные объекты) |
-| `--search` | Папка с фото для поиска |
-| `--out` | Директория для отчётов и overlay-изображений |
-| `--config` | Файл YAML-конфигурации |
-| `--stub` | Использовать stub VLM/LLM (без GigaChat, читает sidecar `.txt`) |
-| `--no-refine` | Пропустить уточнение описания |
-| `--non-interactive` | Пакетный режим без вопросов |
+При наличии Python и Ollama возможен запуск `python run.py --reference object.jpg --video video.mp4`; автоматическая установка Ollama реализована для Windows x64. Linux/macOS не проверены сквозным запуском.
 
-### `moid search-video` — поиск в видео
+## Результат
 
-Интерактивно запрашивает папку референсов, предлагает дополнить профиль объекта,
-запрашивает папку видео и частоту проверки в кадрах/с. Enter использует значения
-`paths.refs`, `paths.videos` и `video.sample_fps` из конфигурации.
+Каждый запуск создаёт новую папку `reports/instance_<дата_время>/`:
 
-```bash
-moid search-video --config configs/default.yaml
+- `annotated.mp4` — весь ролик с рамками, до 1920 пикселей по ширине, исходная частота кадров. Звуковая дорожка не переносится.
+- `results.json` — координаты рамок и связь с семантическими проверками.
+- `semantic_distances.csv` — фактические расстояния, порог и решения.
+- `semantic_profile.json` — описание референса, SBERT, ковариация и порог.
+- `reference.jpg`, `frame_*.jpg` — контрольные изображения.
+
+Без пройденного семантического условия рамка не выводится. На промежуточных кадрах трекер использует последнее подтверждение, что явно отмечено в JSON. Повторная проверка выполняется каждые 10 секунд видео и после нового захвата.
+
+```powershell
+.\run.ps1 -Reference object.jpg -Video video.mp4 -Threshold 6.0 -VerifyEvery 10
 ```
 
-Без вопросов:
+## Метод и ограничения
 
-```bash
-moid search-video --refs data/refs --video data/videos --sample-fps 2 \
-  --out reports --non-interactive --no-refine --config configs/default.yaml
+SIFT/RANSAC находит геометрические кандидаты. VLM независимо описывает референс и кандидата. SBERT кодирует описания, затем вычисляется:
+
+```text
+d(z, μ) = sqrt((z - μ)ᵀ Σ⁻¹ (z - μ))
+приём: d(z, μ) ≤ τ
 ```
 
-| Флаг | Назначение |
-|------|-----------|
-| `--video` | Папка с видео или один видеофайл |
-| `--refs` | Папка с референсными фото |
-| `--out` | Родительская директория запусков |
-| `--config` | Файл YAML-конфигурации |
-| `--sample-fps` | Сколько кадров в секунду проверять |
-| `--stub` | Использовать stub VLM/LLM |
-| `--no-refine` | Не запрашивать дополнение описания |
-| `--non-interactive` | Использовать флаги и значения по умолчанию |
+Оптический поток сопровождает принятую цель, а контур на референсе уточняет рамку. Одного текстового описания недостаточно для гарантированного различения похожих экземпляров: геометрическая проверка также необходима.
 
-**Как работает:**
-1. VLM и визуальный энкодер формируют профиль по референсам.
-2. Все `mp4`, `avi`, `mov`, `mkv`, `webm` из папки обходятся по имени.
-3. Кадры выбираются по времени с `sample_fps`, регионы фильтруются CLIP и проверяются VLM + Mahalanobis.
-4. Каждый запуск создаёт `results.json`, LLM-отчёт `report.md`, все положительные кадры в `overlays/` и лучшие кадры в `best/`.
+По одному фото нельзя оценить выборочную ковариацию. Начальная настройка — `Σ = 0,01I`, `τ = 6`, L2-нормированные SBERT-векторы. Это изотропный частный случай Махаланобиса, равный масштабированному евклидову расстоянию; порог ещё не откалиброван на независимом наборе данных. Python CLI поддерживает `--covariance` с заранее оценёнными диагональными дисперсиями.
 
-### Оценка качества, YOLO и трекинг
+На предоставленном экспериментальном ролике обработаны 722 кадра, рамка присутствовала на 665. На 391 размеченном кадре средний IoU — 0,811. Референс взят из того же ролика; эти числа не являются доказательством точности на новых сценах или преимущества над геометрическим baseline.
 
-Дополнительные возможности устанавливаются отдельно, поэтому базовый grid-пайплайн
-не требует Ultralytics или COCO API:
+[Подробности метода и эксперимента](docs/local_instance.md).
 
-```bash
-pip install -e ".[video,visual,yolo,metrics,fusion]"
+## Разработка и проверка
+
+Основной установленный CLI — `moid` (также `moid-instance`):
+
+```powershell
+.venv\Scripts\moid.exe --help
+.venv\Scripts\python.exe -m pip install '.[dev]'
+.venv\Scripts\python.exe -m ruff check src tests scripts run.py
+.venv\Scripts\python.exe -m pytest -q
+.venv\Scripts\python.exe -m build
 ```
 
-Пример запуска с YOLO proposals, Soft-NMS, трекингом и COCO-разметкой:
+Аудит готового видео и сравнение с разметкой одного целевого объекта:
 
-```bash
-moid search-video --refs data/refs --video data/search \
-  --config configs/default.yaml --detector yolo --nms-method soft \
-  --track --camera-compensation --gt-annotations annotations/instances.json \
-  --save-metrics --non-interactive
+```powershell
+.venv\Scripts\python.exe scripts/validate_semantic_run.py reports/instance_YYYYMMDD_HHMMSS --annotations annotations/instances.json
 ```
 
-`--tau VALUE` вручную переопределяет порог расстояния Махаланобиса. Доступные
-методы постобработки: `hard`, `soft`, `wbf`; WBF требует extra `fusion`.
-Для каждого запуска сохраняется `region_distances.csv`, пригодный для последующей
-калибровки. Если в `detector.calibration_csv` задан CSV с колонками
-`distance,is_positive`, порог автоматически выбирается по максимуму F1.
+Файл разметки относится только к исходному экспериментальному видео. Для другого видео нужна его собственная разметка. Кадры без разметки не считаются отрицательными примерами.
 
-COCO JSON должен содержать стандартные поля `images`, `annotations`,
-`categories`; `images[].file_name` связывается с видео по stem
-`frame_XXXXXXXX`. Для YOLO передаётся папка с файлами
-`frame_XXXXXXXX.txt` в формате `class cx cy width height` с нормированными
-координатами. Метрики `precision`, `recall`, `f1`, `map_50` и `map_50_95`
-записываются в `results.json`, а с `--save-metrics` также в `metrics.json`.
+Ключевые части проекта:
 
-Поля `performance` содержат total/mean/p50/p95 по этапам proposals, CLIP, VLM,
-SBERT, Mahalanobis и postprocess. Частота `--sample-fps` остаётся частотой
-выборки входного видео и не подменяет измеренный throughput.
+- `run.ps1`, `run.py` — единый установщик и запуск.
+- `src/moid/instance.py` — поиск, сопровождение и экспорт видео.
+- `src/moid/semantic.py`, `sbert_worker.py` — независимые описания, SBERT и обязательный семантический фильтр.
+- `src/mcd/` — ядро вычисления Махаланобиса и исследовательские методы.
+- `requirements/cpu.txt` — проверенные версии основных зависимостей; транзитивные зависимости разрешает pip.
+- `tests/` — проверки кода без облачных запросов и загрузки моделей.
+- `docs/paper/`, `scripts/generate_article_figures.py` — материалы экспериментов для будущей статьи.
 
-Команды `moid video` и `moid search-video-i` сохранены как совместимые aliases.
+Модели, окружения, пользовательские данные, кэш и выходные видео исключены из Git. Старые экспериментальные файлы пользователя автоматически не удаляются.
 
-### `moid few-shot` — одно изображение
+## Исследовательские режимы
 
-```bash
-moid few-shot --refs data/refs --target data/search/photo_4_2026-09-01_18-53-11.jpg --config configs/default.yaml --out result.json
-```
+Прежние команды поиска по изображениям, zero-shot, GigaChat, YOLO, DINO и OCR сохранены как опциональные инструменты. Они запускаются через **`moid-experimental`**, имеют отдельную конфигурацию и не являются основным локальным запуском. Справка и зависимости: [docs/experimental.md](docs/experimental.md).
 
-### `moid zero-shot` — текстовый запрос
-
-```bash
-moid zero-shot --query "красный грузовик" --images data/search --stub --mode pairwise
-```
-
-`--stub` читает sidecar `.txt` рядом с файлом. Для кропов сетки нужен живой VLM.
-
-## Конфиг (`configs/default.yaml`)
-
-| Ключ | По умолчанию | Комментарий |
-|-----|---------|--------|
-| `detector.sbert_model` | `all-MiniLM-L6-v2` | Можно `all-mpnet-base-v2` (768-d; лучше с проектором) |
-| `detector.projector_path` | `null` | `.npz` / `.pt` линейный MLP |
-| `detector.threshold` | `max_margin` | Также `chi2`, `fixed`, `quantile`, `negative_quantile` |
-| `detector.threshold_margin` / `threshold_floor` | 0.8 / 0.0 | Для `max_margin` |
-| `detector.negative_quantile` | 0.05 | Калибровка по негативам |
-| `regions.backend` | `grid` | `dino` или `hybrid` (DINO → сетка) |
-| `decision.target_match_gate` | true | `no` отбрасывает регион; `uncertain` — более строгий порог |
-| `decision.min_positive_regions` | 1 | Сколько принятых боксов после NMS нужно для кадра |
-| `ocr.backend` | `none` | `stub` / `easyocr`; только если профиль — транспорт с plate |
-| `hints.text` | `""` | Необязательная подсказка, не замена референсов |
-| `paths.refs` / `videos` / `reports` | `data/refs` … | Дефолты видео-интерактива |
-| `video.sample_fps` | `1.0` | Проверяемых кадров в секунду |
-| `visual.model_name` | `openai/clip-vit-base-patch32` | Энкодер префильтрации регионов |
-| `adapters.vlm` / `llm` | `gigachat` в YAML | В dataclass по умолчанию `stub` |
-
-Калибровка порога на негативных подписях: `moid.calibration.calibrate_threshold(detector, negative_captions, quantile=..., floor=...)`.
-
-Проектор: `python scripts/train_projector.py --captions captions.txt --out projector.npz --dim 64`.
-
-## Python API
-
-```python
-from moid.config import load_config
-from moid.pipeline import run_few_shot, run_zero_shot
-from moid.factory import build_vlm, build_embedder
-
-cfg = load_config("configs/default.yaml")
-result = run_few_shot("data/refs", "data/search/photo_4_2026-09-01_18-53-11.jpg",
-                      vlm=build_vlm(cfg, stub=True), embedder=build_embedder(cfg), config=cfg)
-print(result.frame_positive, result.detections)
-```
-
-`include_best_if_none_accepted` рисует лучший бокс, но **не** ставит `frame_positive`.
-
-## Порядок запуска
-
-### Полный пайплайн обработки
-
-```
-Шаг 1: Подготовка данных
-  ├── data/refs/   → референсные фото (эталонный объект)
-  └── data/search/ → кадры для поиска (фото или видео)
-
-Шаг 2: Обработка изображений
-  moid search --refs data/refs --search data/search \
-    --non-interactive --no-refine --out reports \
-    --config configs/default.yaml
-
-Шаг 3: Обработка видео (если есть)
-  moid search-video --video data/videos \
-    --refs data/refs --out reports --non-interactive \
-    --config configs/default.yaml
-
-Шаг 4: Результаты
-  ├── reports/           → отчёты по изображениям
-  │   └── overlays/      → overlay с bounding boxes
-  └── reports/<run>/       → results.json, report.md, overlays/, best/
-```
-
-### Пошаговое описание
-
-1. **Референсы** — загрузите в `data/refs/` фото искомого объекта (крупные кадры, чётко видимый объект)
-2. **Поиск** — загрузите в `data/search/` кадры/видео для анализа
-3. **Обработка** — запустите `moid search` для изображений и `moid search-video` для видео
-4. **Отчёты** — результаты в `reports/` (JSON + overlay-изображения с bounding boxes)
-
-## Ограничения
-
-- Сетка режет объекты; для транспорта/крупных предметов лучше `regions.backend: hybrid` при установленном `[dino]`.
-- Ковариация в высокой размерности при n≤10 сильно регуляризована; проектор или `diagonal` предпочтительнее `full`.
-- Видео не трекает объект между кадрами: каждый выбранный кадр анализируется независимо.
+Для прежнего локального эксперимента с файлами `data/refs/frame_000000.jpg` и `data/search/video_test.mp4` сохранён короткий совместимый запуск `scripts/run_instance_local.ps1`, который передаёт известную область референса в общий установщик.

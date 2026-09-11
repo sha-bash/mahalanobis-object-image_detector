@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from moid.adapters.gigachat_client import build_gigachat
+from moid.adapters.ollama_client import ollama_chat, resolve_host, resolve_llm_model
 from moid.prompts import ATTRIBUTE_KEYS, LLM_NORMALIZE_PROMPT, SCHEMA_LINE
 
 logger = logging.getLogger(__name__)
@@ -66,4 +67,44 @@ class GigaChatLLM:
             return str(getattr(reply, "content", "") or "").strip()
         except Exception:
             logger.exception("GigaChat LLM request failed")
+            return ""
+
+
+class OllamaLLM:
+    def __init__(
+        self,
+        *,
+        host: str | None = None,
+        model: str | None = None,
+        timeout_sec: float = 180.0,
+        keep_alive: str = "5m",
+        num_ctx: int = 2048,
+        num_predict: int = 512,
+        chat_fn=None,
+    ) -> None:
+        self.host = resolve_host(host)
+        self.model = resolve_llm_model(model)
+        self.timeout_sec = timeout_sec
+        self.keep_alive = keep_alive
+        self.num_ctx = num_ctx
+        self.num_predict = num_predict
+        self._chat = chat_fn or ollama_chat
+
+    def normalize_query(self, text: str) -> str:
+        return self.complete(LLM_NORMALIZE_PROMPT + text.strip())
+
+    def complete(self, prompt: str) -> str:
+        try:
+            return self._chat(
+                host=self.host,
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}],
+                timeout_sec=self.timeout_sec,
+                temperature=0.0,
+                num_predict=self.num_predict,
+                num_ctx=self.num_ctx,
+                keep_alive=self.keep_alive,
+            )
+        except Exception:
+            logger.exception("Ollama LLM request failed")
             return ""

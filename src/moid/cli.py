@@ -24,7 +24,7 @@ def _load_dotenv() -> None:
 def main(argv: list[str] | None = None) -> int:
     _load_dotenv()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
-    parser = argparse.ArgumentParser(prog="moid", description="Few-shot / zero-shot object detector (VLM + mcd)")
+    parser = argparse.ArgumentParser(prog="moid-experimental", description="Experimental few-shot / zero-shot detector (VLM + mcd)")
     sub = parser.add_subparsers(dest="command", required=True)
 
     # few-shot

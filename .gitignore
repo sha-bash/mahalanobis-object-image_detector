@@ -21,3 +21,11 @@ data/search/*.jpg
 data/search/*.json
 data/search/*.mp4
 .gigacode_vsc
+.cache/
+data/**/*
+!data/**/
+!data/**/.gitkeep
+*.log
+coverage.xml
+.coverage
+/docs

@@ -41,6 +41,10 @@ def optimize_threshold_by_f1(
     """Select distance <= threshold using a labelled validation set."""
     if len(distances) != len(labels) or not distances:
         raise ValueError("distances and labels must be non-empty and have equal length")
+    if not any(labels):
+        raise ValueError(
+            "No positive regions in the calibration set; refusing to fit a dummy threshold"
+        )
     best = ThresholdCalibration(0.0, 0.0, 0.0, 0.0)
     candidates = sorted(set(float(value) for value in distances))
     for threshold in candidates:

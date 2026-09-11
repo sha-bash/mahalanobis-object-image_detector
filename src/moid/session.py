@@ -282,7 +282,7 @@ def _run_video_search_session_legacy(
 
     # 5. Report
     positive_frames = [r for r in results if r["frame_positive"]]
-    stdout.write(f"\n8 этап: результаты\n")
+    stdout.write("\n8 этап: результаты\n")
     stdout.write(f"   Всего кадров: {len(results)}\n")
     stdout.write(f"   Кадров с обнаружением: {len(positive_frames)}\n")
     for r in results[:10]:  # show first 10 for brevity

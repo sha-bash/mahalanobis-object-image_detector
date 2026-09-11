@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Tuple
+from typing import Tuple
 
 import numpy as np
 from PIL import Image
@@ -131,7 +131,6 @@ class Dinov2Proposer:
         # For each patch, find its most similar neighbor (excluding self)
         sim_matrix_clean = sim_matrix.copy()
         np.fill_diagonal(sim_matrix_clean, -1)
-        max_sim_idx = np.argmax(sim_matrix_clean, axis=1)
         max_sim_vals = np.max(sim_matrix_clean, axis=1)
         
         # Object centers tend to have high self-similarity with neighbors
