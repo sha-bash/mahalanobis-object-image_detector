@@ -1,0 +1,89 @@
+{
+  "source": "https://spritea.github.io/GMOT40/download.html",
+  "license": "CC BY-NC-SA 4.0",
+  "protocol_sha256": "d00eb4c1f5b63e16c5b5bf68696e5df6881ec06e4619d3e4e2b6f9667028d933",
+  "archives": {
+    "GenericMOT_JPEG_Sequence.zip": {
+      "bytes": 1498450771,
+      "sha256": "243d3c4c9c22f0f244df9e5fd13a57d192d2a8d194fee4614ff4e329601ca507"
+    },
+    "track_label.zip": {
+      "bytes": 1978567,
+      "sha256": "aecbca612d696ecd6a536aa381ac45de2d6a57430520fd8418ec15376c0e6515"
+    }
+  },
+  "clips": [
+    {
+      "clip": "car-0",
+      "target": 1,
+      "annotation_sha256": "1f8b4832d5f235e3f7949dfb457f48d7c8f89a72bc11d6d6d6ff3f354a4e7b79",
+      "status": "prepared",
+      "input_frames": 228,
+      "evaluated_present": 227,
+      "ignored": 0,
+      "size": [
+        1920,
+        1080
+      ],
+      "source_frame_offset": 1,
+      "encoded_fps": 30,
+      "fps_note": "fixed processing clock, original fps not supplied",
+      "video_sha256": "18a99d2717bcbfe8e7faf7d164fda2426d1c5578a18b0909cfdf7952ad5dc7e2",
+      "reference_sha256": "aedc2a498dfdc34f8ba095459a5ce39c206409b8997460862c123654dd105b30"
+    },
+    {
+      "clip": "car-1",
+      "target": 1,
+      "annotation_sha256": "19a233d088dfbca91596cf84b45048e2a4edbe482ed9a0c3dfc8fd5f9d1fb2f0",
+      "status": "prepared",
+      "input_frames": 300,
+      "evaluated_present": 89,
+      "ignored": 210,
+      "size": [
+        1920,
+        1080
+      ],
+      "source_frame_offset": 1,
+      "encoded_fps": 30,
+      "fps_note": "fixed processing clock, original fps not supplied",
+      "video_sha256": "cbe34c455551ae48a5cba66728251f5f500b4b6e7d194230dafca4bc7a677d0d",
+      "reference_sha256": "77a96263a76fdbf8c986d6cd502f17e40ea25dc106ce69a31a1cce45f611f728"
+    },
+    {
+      "clip": "car-2",
+      "target": 4,
+      "annotation_sha256": "9592b1d1682d09673d461771657ba03f655223783f0c9bb47f6f3142256d2bd7",
+      "status": "prepared",
+      "input_frames": 199,
+      "evaluated_present": 33,
+      "ignored": 165,
+      "size": [
+        1280,
+        720
+      ],
+      "source_frame_offset": 1,
+      "encoded_fps": 30,
+      "fps_note": "fixed processing clock, original fps not supplied",
+      "video_sha256": "bcb5f3053a5ef07cb42ec2fe9c8468c9734a0e0d36797ee48674b5fda7d453c9",
+      "reference_sha256": "19d2817f91c1a2e48d140af390e98b7a50ff4f7c15118d3a29356a14c5fc8f60"
+    },
+    {
+      "clip": "car-3",
+      "target": 1,
+      "annotation_sha256": "f5a43aedddc0445c7c94b41928713fe521945a24b1e08742154a881c9a9768c6",
+      "status": "prepared",
+      "input_frames": 166,
+      "evaluated_present": 165,
+      "ignored": 0,
+      "size": [
+        1920,
+        1080
+      ],
+      "source_frame_offset": 1,
+      "encoded_fps": 30,
+      "fps_note": "fixed processing clock, original fps not supplied",
+      "video_sha256": "b65656b33d8894b6111f1f7852916cd83e77d804a1c0c509c44e9349936c529f",
+      "reference_sha256": "9363c42556be4fddbb07bd972aecbddb1f1065292346c09c5e601c47114d1413"
+    }
+  ]
+}

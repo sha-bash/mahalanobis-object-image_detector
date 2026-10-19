@@ -17,8 +17,18 @@ import cv2
 import numpy as np
 
 
+def clipped_box(polygon, size):
+    """Half-open xyxy in the actual resized image; reject off-screen regions."""
+    polygon = np.asarray(polygon, dtype=float)
+    if polygon.ndim != 2 or polygon.shape[1] != 2 or not np.isfinite(polygon).all():
+        return None
+    lo = np.clip(np.floor(polygon.min(axis=0)), 0, size).astype(int)
+    hi = np.clip(np.ceil(polygon.max(axis=0)), 0, size).astype(int)
+    return [*lo.tolist(), *hi.tolist()] if np.all(hi > lo) else None
+
+
 class InstanceLocator:
-    def __init__(self, reference: np.ndarray, min_inliers: int = 8):
+    def __init__(self, reference: np.ndarray, min_inliers: int = 8, foreground_only=False):
         self.reference = cv2.cvtColor(reference, cv2.COLOR_BGR2GRAY)
         self.height, self.width = self.reference.shape
         self.outline = np.float32(
@@ -31,6 +41,7 @@ class InstanceLocator:
         )
         # A tightly cropped single-object reference permits foreground extraction.
         # Fall back to its rectangle if segmentation is degenerate.
+        self.feature_mask = None
         if min(self.height, self.width) >= 20:
             labels = np.zeros(self.reference.shape, np.uint8)
             cv2.grabCut(
@@ -51,8 +62,10 @@ class InstanceLocator:
                 fraction = cv2.contourArea(hull) / (self.width * self.height)
                 if 0.2 <= fraction <= 0.9:
                     self.outline = hull[:, 0].astype(np.float32)
+                    if foreground_only:
+                        self.feature_mask = foreground
         self.sift = cv2.SIFT_create(nfeatures=6000, contrastThreshold=0.02)
-        self.keys, self.descriptors = self.sift.detectAndCompute(self.reference, None)
+        self.keys, self.descriptors = self.sift.detectAndCompute(self.reference, self.feature_mask)
         if self.descriptors is None or len(self.keys) < min_inliers:
             raise ValueError(
                 "Reference has too few distinctive details for geometric matching"
@@ -86,8 +99,10 @@ class InstanceLocator:
             flags=cv2.INTER_NEAREST | cv2.WARP_INVERSE_MAP,
         )
         visible = cv2.erode(visible, np.ones((5, 5), np.uint8)).astype(bool)
-        if visible.mean() < 0.5:
+        support = self.feature_mask > 0 if self.feature_mask is not None else np.ones_like(visible)
+        if np.count_nonzero(visible & support) < 0.5 * np.count_nonzero(support):
             return 0.0
+        visible &= support
         a = cv2.GaussianBlur(self.reference, (5, 5), 0)[visible].astype(float)
         b = cv2.GaussianBlur(patch, (5, 5), 0)[visible].astype(float)
         a -= a.mean()
@@ -181,7 +196,10 @@ class InstanceLocator:
             return None
         polygon = self.polygon(matrix)
         mask = np.zeros(gray.shape, np.uint8)
-        cv2.fillConvexPoly(mask, self.support_polygon(matrix).astype(np.int32), 255)
+        if self.feature_mask is not None:
+            mask = cv2.warpAffine(self.feature_mask, matrix[:2], gray.shape[::-1], flags=cv2.INTER_NEAREST)
+        else:
+            cv2.fillConvexPoly(mask, self.support_polygon(matrix).astype(np.int32), 255)
         self.points = cv2.goodFeaturesToTrack(gray, 100, 0.01, 3, mask=mask)
         return {
             "polygon": polygon.tolist(),
@@ -200,6 +218,8 @@ def run(
     verifier=None,
     verify_every=10,
     baseline=False,
+    foreground_only=False,
+    seed=2027,
 ):
     if verifier is None and not baseline:
         raise ValueError(
@@ -207,6 +227,9 @@ def run(
         )
     if not math.isfinite(verify_every) or verify_every < 0:
         raise ValueError("verify_every must be a finite non-negative number")
+    if not isinstance(width, int) or width < 2:
+        raise ValueError("width must be an integer >= 2")
+    cv2.setRNGSeed(seed)
     started = time.perf_counter()
     reference = Path(reference)
     video = Path(video)
@@ -218,7 +241,7 @@ def run(
         if not (0 <= x1 < x2 <= ref.shape[1] and 0 <= y1 < y2 <= ref.shape[0]):
             raise ValueError("Reference box is outside the image")
         ref = ref[y1:y2, x1:x2]
-    locator = InstanceLocator(ref)
+    locator = InstanceLocator(ref, foreground_only=foreground_only)
     cap = cv2.VideoCapture(str(video))
     if not cap.isOpened():
         raise ValueError(f"Cannot open video: {video}")
@@ -267,6 +290,9 @@ def run(
             result = locator.update(
                 frame, allow_detection=index % max(1, round(fps)) == 0
             )
+            if result is not None and clipped_box(result['polygon'], size) is None:
+                locator.matrix = None
+                result = None
             if result is None:
                 last_check_id = None
             if (
@@ -279,9 +305,7 @@ def run(
                     )
                 )
             ):
-                polygon = np.asarray(result["polygon"])
-                x1, y1 = np.maximum(0, np.floor(polygon.min(axis=0))).astype(int)
-                x2, y2 = np.minimum(size, np.ceil(polygon.max(axis=0))).astype(int)
+                x1, y1, x2, y2 = clipped_box(result['polygon'], size)
                 check_started = time.perf_counter()
                 decision = verifier.verify(frame[y1:y2, x1:x2])
                 if not baseline:
@@ -321,6 +345,8 @@ def run(
                 checks.append(
                     {
                         "frame": index,
+                        "bbox_xyxy": [x1, y1, x2, y2],
+                        "candidate_source": result['source'],
                         "elapsed_sec": time.perf_counter() - check_started,
                         **decision,
                     }
@@ -345,9 +371,8 @@ def run(
                 result = None
             row = {"frame": index, "time_sec": index / fps, "found": result is not None}
             if result:
-                polygon = np.asarray(result["polygon"])
-                lo = np.maximum(0, np.floor(polygon.min(axis=0))).astype(int)
-                hi = np.minimum(size, np.ceil(polygon.max(axis=0))).astype(int)
+                coordinates = clipped_box(result['polygon'], size)
+                lo, hi = np.array(coordinates[:2]), np.array(coordinates[2:])
                 row.update(result)
                 if not baseline:
                     confirmation_frame = checks[last_check_id]["frame"]
@@ -373,7 +398,7 @@ def run(
                 )
             writer.write(frame)
             rows.append(row)
-            if index % round(fps * 4) == 0:
+            if index % max(1, round(fps * 4)) == 0:
                 cv2.imwrite(str(out / f"frame_{index:06d}.jpg"), frame)
                 print(
                     f"frame {index}: {'found' if result else 'not found'}", flush=True
@@ -389,6 +414,11 @@ def run(
             if not baseline
             else "geometric_baseline",
             "mandatory_mahalanobis": not baseline,
+            "seed": seed,
+            "foreground_only": foreground_only,
+            "foreground_mask_used": locator.feature_mask is not None,
+            "opencv_version": cv2.__version__,
+            "scale_xy": [size[0] / source_w, size[1] / source_h],
             "reference": str(reference.resolve()),
             "reference_box": ref_box,
             "reference_outline": locator.outline.tolist(),
@@ -455,6 +485,8 @@ def main(argv=None):
         "--ref-box", type=int, nargs=4, metavar=("X1", "Y1", "X2", "Y2")
     )
     parser.add_argument("--width", type=int, default=1920)
+    parser.add_argument("--foreground-only", action="store_true")
+    parser.add_argument("--seed", type=int, default=2027)
     parser.add_argument("--vlm", choices=["ollama", "none"], default="ollama")
     parser.add_argument(
         "--baseline",
@@ -518,6 +550,8 @@ def main(argv=None):
         verifier=verifier,
         verify_every=args.verify_every,
         baseline=args.baseline,
+        foreground_only=args.foreground_only,
+        seed=args.seed,
     )
     print(
         json.dumps(

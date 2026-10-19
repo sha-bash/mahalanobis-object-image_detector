@@ -15,7 +15,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from mcd.modeling.mahalanobis import mahalanobis_between, scaled_identity_covariance
+from mcd.modeling.mahalanobis import scaled_identity_covariance
 from moid.adapters.ollama_client import ollama_chat
 
 FIELDS = ("object", "shape", "color", "parts", "distinctive_features")
@@ -54,10 +54,11 @@ def canonical_caption(fields):
 class IndependentCaptioner:
     """Single-image descriptions; candidates never receive the target's caption."""
 
-    def __init__(self, model, host, cache_dir, chat_fn=None, scene_context=""):
+    def __init__(self, model, host, cache_dir, chat_fn=None, scene_context="", keep_alive="0"):
         self.model, self.host = model, host
         self.cache_dir = Path(cache_dir)
         self.chat = chat_fn or ollama_chat
+        self.keep_alive = keep_alive
         self.prompt = PROMPT + (
             f" Scene context: {scene_context}." if scene_context else ""
         )
@@ -102,7 +103,7 @@ class IndependentCaptioner:
             timeout_sec=600,
             num_ctx=2048,
             num_predict=256,
-            keep_alive="0",
+            keep_alive=self.keep_alive,
             num_thread=4,
             num_gpu=0,
             think=False,
@@ -276,9 +277,9 @@ class SemanticVerifier:
         if vector.shape != self.reference_vector.shape:
             raise ValueError("Reference/candidate embedding dimensions differ")
         # Sigma is already positive definite. reg=0 avoids double regularization.
-        distance = mahalanobis_between(
-            vector, self.reference_vector, self.covariance, reg=0
-        )
+        # This class accepts diagonal covariance only: no dense inverse is needed.
+        diff = vector - self.reference_vector
+        distance = float(np.sqrt(np.sum(diff * diff / self.covariance.diagonal())))
         accepted = math.isfinite(distance) and distance <= self.threshold
         return {
             "match": "yes" if accepted else "no",

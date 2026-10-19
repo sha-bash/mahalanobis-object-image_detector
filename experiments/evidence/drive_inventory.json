@@ -1,0 +1,172 @@
+{
+  "root": "https://drive.google.com/drive/folders/1SdUXDYz3GikB3pJmtE3jrBq4NESZs5c7",
+  "retrieved": "2026-10-02",
+  "csv": [
+    {
+      "id": "1f3kZik41Vj7XG93fip1C-CVnNoZvYlrf",
+      "name": "ground_truth_manual.csv",
+      "url": "https://drive.google.com/file/d/1f3kZik41Vj7XG93fip1C-CVnNoZvYlrf/view",
+      "source_text_chars": 19289,
+      "local": "experiments/local/drive/ground_truth_manual.csv"
+    },
+    {
+      "id": "1291HXrM_YOChQx-_GiDipPQgB-iHsKat",
+      "name": "DAY_DASIAMRPN_GAZEL.csv",
+      "url": "https://drive.google.com/file/d/1291HXrM_YOChQx-_GiDipPQgB-iHsKat/view",
+      "source_text_chars": 8662,
+      "local": "experiments/local/drive/DAY_DASIAMRPN_GAZEL.csv"
+    },
+    {
+      "id": "1RYzaVCqt2tsD1LtED8zJbliU2jysDCJ-",
+      "name": "DAY_DASIAMRPN_66.csv",
+      "url": "https://drive.google.com/file/d/1RYzaVCqt2tsD1LtED8zJbliU2jysDCJ-/view",
+      "source_text_chars": 16386,
+      "local": "experiments/local/drive/DAY_DASIAMRPN_66.csv"
+    }
+  ],
+  "folders": [
+    {
+      "id": "1SdUXDYz3GikB3pJmtE3jrBq4NESZs5c7",
+      "title": "train",
+      "partial": false,
+      "files": [
+        {
+          "id": "1Hr0xZepI4vfXA7XkNPbr8vUoTIwbkB2n",
+          "name": "work_line",
+          "mime": "application/vnd.google-apps.folder",
+          "size": null
+        },
+        {
+          "id": "1VZ9iDI_5tHzO1uZG76hzCmwB33WaKTc8",
+          "name": "train_manual_66",
+          "mime": "application/vnd.google-apps.folder",
+          "size": null
+        },
+        {
+          "id": "1DmPJN3zKBNZOFhqWzGbTNy-vXSr1lMJS",
+          "name": "GAZEL",
+          "mime": "application/vnd.google-apps.folder",
+          "size": null
+        },
+        {
+          "id": "1K6qX0ssjTmV0R-uyv3b3CkH59YcjJSmv",
+          "name": "66",
+          "mime": "application/vnd.google-apps.folder",
+          "size": null
+        },
+        {
+          "id": "1ibO_F9EFkMrNvEg7Op1cbd5WrvG_q5r-",
+          "name": "video_test.mp4",
+          "mime": "video/mp4",
+          "size": "68827644"
+        }
+      ]
+    },
+    {
+      "id": "1VZ9iDI_5tHzO1uZG76hzCmwB33WaKTc8",
+      "title": "train_manual_66",
+      "partial": false,
+      "files": [
+        {
+          "id": "1MExZcDt8ZejIMI_3EH_ii1OOFKXoHUmK",
+          "name": "checked_frames",
+          "mime": "application/vnd.google-apps.folder",
+          "size": null
+        },
+        {
+          "id": "1f3kZik41Vj7XG93fip1C-CVnNoZvYlrf",
+          "name": "ground_truth_manual.csv",
+          "mime": "text/csv",
+          "size": "19289"
+        }
+      ]
+    },
+    {
+      "id": "1DmPJN3zKBNZOFhqWzGbTNy-vXSr1lMJS",
+      "title": "GAZEL",
+      "partial": false,
+      "files": [
+        {
+          "id": "1S6iYeaBXVQGaB95a8UcDACqvpvxPEmuk",
+          "name": "checked_frames_GAZEL",
+          "mime": "application/vnd.google-apps.folder",
+          "size": null
+        },
+        {
+          "id": "1291HXrM_YOChQx-_GiDipPQgB-iHsKat",
+          "name": "DAY_DASIAMRPN_GAZEL.csv",
+          "mime": "text/csv",
+          "size": "8662"
+        }
+      ]
+    },
+    {
+      "id": "1K6qX0ssjTmV0R-uyv3b3CkH59YcjJSmv",
+      "title": "66",
+      "partial": false,
+      "files": [
+        {
+          "id": "1cSBiA1aq9nOwH0y_36i0_g8htRsjuyRr",
+          "name": "checked_frames_66",
+          "mime": "application/vnd.google-apps.folder",
+          "size": null
+        },
+        {
+          "id": "1RYzaVCqt2tsD1LtED8zJbliU2jysDCJ-",
+          "name": "DAY_DASIAMRPN_66.csv",
+          "mime": "text/csv",
+          "size": "16386"
+        }
+      ]
+    },
+    {
+      "id": "1Hr0xZepI4vfXA7XkNPbr8vUoTIwbkB2n",
+      "title": "work_line",
+      "partial": false,
+      "files": [
+        {
+          "id": "14iTZQafHtmk-_rPzbJoLuZKkkxeiomBx",
+          "name": "GroundTruthAnnotator_work.exe",
+          "mime": "application/x-dosexec",
+          "size": "75715171"
+        }
+      ]
+    },
+    {
+      "id": "1S6iYeaBXVQGaB95a8UcDACqvpvxPEmuk",
+      "title": "checked_frames_GAZEL",
+      "partial": true,
+      "listed_files": 100,
+      "example_names": [
+        "frame_000373.jpg",
+        "frame_000374.jpg",
+        "frame_000375.jpg"
+      ],
+      "files_omitted_from_public_inventory": true
+    },
+    {
+      "id": "1cSBiA1aq9nOwH0y_36i0_g8htRsjuyRr",
+      "title": "checked_frames_66",
+      "partial": true,
+      "listed_files": 100,
+      "example_names": [
+        "frame_000707.jpg",
+        "frame_000708.jpg",
+        "frame_000709.jpg"
+      ],
+      "files_omitted_from_public_inventory": true
+    },
+    {
+      "id": "1MExZcDt8ZejIMI_3EH_ii1OOFKXoHUmK",
+      "title": "checked_frames",
+      "partial": true,
+      "listed_files": 100,
+      "example_names": [
+        "frame_000707.jpg",
+        "frame_000708.jpg",
+        "frame_000709.jpg"
+      ],
+      "files_omitted_from_public_inventory": true
+    }
+  ]
+}

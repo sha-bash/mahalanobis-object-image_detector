@@ -1,0 +1,106 @@
+{
+  "version": "gmot40-pilot-v1",
+  "iou_threshold": 0.5,
+  "sequences": [
+    {
+      "id": "car-0",
+      "split": "test",
+      "identities": [
+        "car-0:1"
+      ],
+      "video_id": "car-0",
+      "reference_video_id": "car-0",
+      "scene_ids": [
+        "car-0"
+      ],
+      "cluster_id": "car-0",
+      "reference_protocol": "same_scene",
+      "video": "experiments/local/gmot40/prepared/car-0/video.avi",
+      "reference": "experiments/local/gmot40/prepared/car-0/reference.png",
+      "ref_box": [
+        0,
+        0,
+        124,
+        60
+      ],
+      "annotations": "experiments/local/gmot40/prepared/car-0/annotations.json",
+      "scene_context": "",
+      "rights": "GMOT-40 CC BY-NC-SA 4.0"
+    },
+    {
+      "id": "car-1",
+      "split": "test",
+      "identities": [
+        "car-1:1"
+      ],
+      "video_id": "car-1",
+      "reference_video_id": "car-1",
+      "scene_ids": [
+        "car-1"
+      ],
+      "cluster_id": "car-1",
+      "reference_protocol": "same_scene",
+      "video": "experiments/local/gmot40/prepared/car-1/video.avi",
+      "reference": "experiments/local/gmot40/prepared/car-1/reference.png",
+      "ref_box": [
+        0,
+        0,
+        99,
+        87
+      ],
+      "annotations": "experiments/local/gmot40/prepared/car-1/annotations.json",
+      "scene_context": "",
+      "rights": "GMOT-40 CC BY-NC-SA 4.0"
+    },
+    {
+      "id": "car-2",
+      "split": "test",
+      "identities": [
+        "car-2:4"
+      ],
+      "video_id": "car-2",
+      "reference_video_id": "car-2",
+      "scene_ids": [
+        "car-2"
+      ],
+      "cluster_id": "car-2",
+      "reference_protocol": "same_scene",
+      "video": "experiments/local/gmot40/prepared/car-2/video.avi",
+      "reference": "experiments/local/gmot40/prepared/car-2/reference.png",
+      "ref_box": [
+        0,
+        0,
+        61,
+        44
+      ],
+      "annotations": "experiments/local/gmot40/prepared/car-2/annotations.json",
+      "scene_context": "",
+      "rights": "GMOT-40 CC BY-NC-SA 4.0"
+    },
+    {
+      "id": "car-3",
+      "split": "test",
+      "identities": [
+        "car-3:1"
+      ],
+      "video_id": "car-3",
+      "reference_video_id": "car-3",
+      "scene_ids": [
+        "car-3"
+      ],
+      "cluster_id": "car-3",
+      "reference_protocol": "same_scene",
+      "video": "experiments/local/gmot40/prepared/car-3/video.avi",
+      "reference": "experiments/local/gmot40/prepared/car-3/reference.png",
+      "ref_box": [
+        0,
+        0,
+        84,
+        64
+      ],
+      "annotations": "experiments/local/gmot40/prepared/car-3/annotations.json",
+      "scene_context": "",
+      "rights": "GMOT-40 CC BY-NC-SA 4.0"
+    }
+  ]
+}

@@ -1,0 +1,206 @@
+{
+  "version": "heldout-v1",
+  "iou_threshold": 0.5,
+  "sequences": [
+    {
+      "id": "airplane-0",
+      "split": "test",
+      "identities": [
+        "airplane-0:1"
+      ],
+      "video_id": "airplane-0",
+      "reference_video_id": "airplane-0",
+      "scene_ids": [
+        "airplane-0"
+      ],
+      "cluster_id": "airplane-0",
+      "reference_protocol": "same_scene",
+      "video": "experiments/local/heldout_v1/airplane-0/video.avi",
+      "reference": "experiments/local/heldout_v1/airplane-0/reference.png",
+      "ref_box": [
+        0,
+        0,
+        181,
+        73
+      ],
+      "annotations": "experiments/local/heldout_v1/airplane-0/annotations.json",
+      "scene_context": "",
+      "rights": "GMOT-40 CC BY-NC-SA 4.0"
+    },
+    {
+      "id": "airplane-1",
+      "split": "test",
+      "identities": [
+        "airplane-1:1"
+      ],
+      "video_id": "airplane-1",
+      "reference_video_id": "airplane-1",
+      "scene_ids": [
+        "airplane-1"
+      ],
+      "cluster_id": "airplane-1",
+      "reference_protocol": "same_scene",
+      "video": "experiments/local/heldout_v1/airplane-1/video.avi",
+      "reference": "experiments/local/heldout_v1/airplane-1/reference.png",
+      "ref_box": [
+        0,
+        0,
+        133,
+        75
+      ],
+      "annotations": "experiments/local/heldout_v1/airplane-1/annotations.json",
+      "scene_context": "",
+      "rights": "GMOT-40 CC BY-NC-SA 4.0"
+    },
+    {
+      "id": "airplane-2",
+      "split": "test",
+      "identities": [
+        "airplane-2:1"
+      ],
+      "video_id": "airplane-2",
+      "reference_video_id": "airplane-2",
+      "scene_ids": [
+        "airplane-2"
+      ],
+      "cluster_id": "airplane-2",
+      "reference_protocol": "same_scene",
+      "video": "experiments/local/heldout_v1/airplane-2/video.avi",
+      "reference": "experiments/local/heldout_v1/airplane-2/reference.png",
+      "ref_box": [
+        0,
+        0,
+        100,
+        60
+      ],
+      "annotations": "experiments/local/heldout_v1/airplane-2/annotations.json",
+      "scene_context": "",
+      "rights": "GMOT-40 CC BY-NC-SA 4.0"
+    },
+    {
+      "id": "airplane-3",
+      "split": "test",
+      "identities": [
+        "airplane-3:4"
+      ],
+      "video_id": "airplane-3",
+      "reference_video_id": "airplane-3",
+      "scene_ids": [
+        "airplane-3"
+      ],
+      "cluster_id": "airplane-3",
+      "reference_protocol": "same_scene",
+      "video": "experiments/local/heldout_v1/airplane-3/video.avi",
+      "reference": "experiments/local/heldout_v1/airplane-3/reference.png",
+      "ref_box": [
+        0,
+        0,
+        63,
+        26
+      ],
+      "annotations": "experiments/local/heldout_v1/airplane-3/annotations.json",
+      "scene_context": "",
+      "rights": "GMOT-40 CC BY-NC-SA 4.0"
+    },
+    {
+      "id": "boat-0",
+      "split": "test",
+      "identities": [
+        "boat-0:0"
+      ],
+      "video_id": "boat-0",
+      "reference_video_id": "boat-0",
+      "scene_ids": [
+        "boat-0"
+      ],
+      "cluster_id": "boat-0",
+      "reference_protocol": "same_scene",
+      "video": "experiments/local/heldout_v1/boat-0/video.avi",
+      "reference": "experiments/local/heldout_v1/boat-0/reference.png",
+      "ref_box": [
+        0,
+        0,
+        257,
+        376
+      ],
+      "annotations": "experiments/local/heldout_v1/boat-0/annotations.json",
+      "scene_context": "",
+      "rights": "GMOT-40 CC BY-NC-SA 4.0"
+    },
+    {
+      "id": "boat-1",
+      "split": "test",
+      "identities": [
+        "boat-1:1"
+      ],
+      "video_id": "boat-1",
+      "reference_video_id": "boat-1",
+      "scene_ids": [
+        "boat-1"
+      ],
+      "cluster_id": "boat-1",
+      "reference_protocol": "same_scene",
+      "video": "experiments/local/heldout_v1/boat-1/video.avi",
+      "reference": "experiments/local/heldout_v1/boat-1/reference.png",
+      "ref_box": [
+        0,
+        0,
+        130,
+        172
+      ],
+      "annotations": "experiments/local/heldout_v1/boat-1/annotations.json",
+      "scene_context": "",
+      "rights": "GMOT-40 CC BY-NC-SA 4.0"
+    },
+    {
+      "id": "boat-2",
+      "split": "test",
+      "identities": [
+        "boat-2:1"
+      ],
+      "video_id": "boat-2",
+      "reference_video_id": "boat-2",
+      "scene_ids": [
+        "boat-2"
+      ],
+      "cluster_id": "boat-2",
+      "reference_protocol": "same_scene",
+      "video": "experiments/local/heldout_v1/boat-2/video.avi",
+      "reference": "experiments/local/heldout_v1/boat-2/reference.png",
+      "ref_box": [
+        0,
+        0,
+        52,
+        54
+      ],
+      "annotations": "experiments/local/heldout_v1/boat-2/annotations.json",
+      "scene_context": "",
+      "rights": "GMOT-40 CC BY-NC-SA 4.0"
+    },
+    {
+      "id": "boat-3",
+      "split": "test",
+      "identities": [
+        "boat-3:1"
+      ],
+      "video_id": "boat-3",
+      "reference_video_id": "boat-3",
+      "scene_ids": [
+        "boat-3"
+      ],
+      "cluster_id": "boat-3",
+      "reference_protocol": "same_scene",
+      "video": "experiments/local/heldout_v1/boat-3/video.avi",
+      "reference": "experiments/local/heldout_v1/boat-3/reference.png",
+      "ref_box": [
+        0,
+        0,
+        94,
+        146
+      ],
+      "annotations": "experiments/local/heldout_v1/boat-3/annotations.json",
+      "scene_context": "",
+      "rights": "GMOT-40 CC BY-NC-SA 4.0"
+    }
+  ]
+}
