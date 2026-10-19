@@ -1,0 +1,12 @@
+{
+  "version": "2026-10-02-v1",
+  "status": "frozen before new runs; existing video is debug only",
+  "questions": ["Does semantic verification reduce false acceptance at acceptable recall?", "Does foreground masking reduce background reliance?", "Do learned diagonal distances beat cosine on the same features?"],
+  "seed": 2027,
+  "iou_threshold": 0.5,
+  "selection": {"split": "validation", "minimum_recall": 0.7, "objective": "minimize absence false positive rate; tie-break recall then wall time", "infeasible": "report no eligible configuration; do not change criterion"},
+  "threshold_grids": {"semantic_distance": [0, 2, 4, 6, 8, 10, 12, 14.142135623730951], "cosine_distance": [0, 0.02, 0.08, 0.18, 0.32, 0.5, 0.72, 1.0, 2.0]},
+  "comparison": ["legacy_geometry", "legacy_semantic", "foreground_geometry", "foreground_semantic", "OpenCV template matching (fixed scale reference-only baseline)"],
+  "rules": ["One reference image per query", "No initial video box", "No adaptation using test labels", "No tuning on debug video", "Ignore unlabelled frames", "Separate same-scene and independent-capture reference protocols", "Bootstrap independent clusters, never adjacent frames", "Only candidate replay for threshold sensitivity; a changed gate requires full rerun"],
+  "sequences": [{"id":"demo_van", "split":"debug", "identities":["demo_van_1"], "video_id":"demo_video", "reference_video_id":"demo_video", "scene_ids":["demo_scene"], "cluster_id":"demo_scene", "reference_protocol":"same_scene", "video":"data/search/video_test.mp4", "reference":"data/refs/frame_000000.jpg", "ref_box":[41,34,229,207], "annotations":"annotations/instances.json", "annotation_format":"legacy_single_target_coco", "rights":"User supplied; provenance and redistribution rights not documented"}]
+}

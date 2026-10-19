@@ -1,0 +1,85 @@
+{
+  "version": "2026-10-02-drive-extension-before-new-query-runs",
+  "status": "second query, same development scene; not an independent test",
+  "questions": [
+    "Does semantic verification reduce false acceptance at acceptable recall?",
+    "Does foreground masking reduce background reliance?",
+    "Do learned diagonal distances beat cosine on the same features?"
+  ],
+  "seed": 2027,
+  "iou_threshold": 0.5,
+  "selection": {
+    "split": "validation",
+    "minimum_recall": 0.7,
+    "objective": "minimize absence false positive rate; tie-break recall then wall time",
+    "infeasible": "report no eligible configuration; do not change criterion"
+  },
+  "threshold_grids": {
+    "semantic_distance": [
+      0,
+      2,
+      4,
+      6,
+      8,
+      10,
+      12,
+      14.142135623730951
+    ],
+    "cosine_distance": [
+      0,
+      0.02,
+      0.08,
+      0.18,
+      0.32,
+      0.5,
+      0.72,
+      1.0,
+      2.0
+    ]
+  },
+  "comparison": [
+    "legacy_geometry",
+    "legacy_semantic",
+    "foreground_geometry",
+    "foreground_semantic",
+    "OpenCV template matching (fixed scale reference-only baseline)"
+  ],
+  "rules": [
+    "One reference image per query",
+    "No initial video box",
+    "No adaptation using test labels",
+    "No tuning on debug video",
+    "Ignore unlabelled frames",
+    "Separate same-scene and independent-capture reference protocols",
+    "Bootstrap independent clusters, never adjacent frames",
+    "Only candidate replay for threshold sensitivity; a changed gate requires full rerun"
+  ],
+  "sequences": [
+    {
+      "id": "demo_66",
+      "split": "debug",
+      "identities": [
+        "demo_van_1",
+        "demo_66_1"
+      ],
+      "video_id": "demo_video",
+      "reference_video_id": "demo_video",
+      "scene_ids": [
+        "demo_scene"
+      ],
+      "cluster_id": "demo_scene",
+      "reference_protocol": "same_scene",
+      "video": "data/search/video_test.mp4",
+      "reference": "experiments/local/drive/reference_66.png",
+      "ref_box": [
+        0,
+        0,
+        229,
+        211
+      ],
+      "annotations": "experiments/local/drive/annotations_66.json",
+      "annotation_format": "explicit_frames",
+      "rights": "User-provided Drive data; no redistribution"
+    }
+  ]
+}

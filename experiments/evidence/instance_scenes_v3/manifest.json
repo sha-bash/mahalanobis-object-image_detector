@@ -1,0 +1,1405 @@
+{
+  "protocol_sha256": "9c4927830156c8850b09a42f9805c20083b2f99be0e72536f18f1cac556bf64b",
+  "refs": [
+    {
+      "key": "ref_bowl_4",
+      "identity": "bowl_4",
+      "path": "experiments/local/instance_scenes_v3/ref_bowl_4.png",
+      "sha256": "4acd03e7a1c354dbd3602afb69ab33a010e603664e901d983e8c66d78e46a643",
+      "source_member": "rgbd-dataset_eval/bowl/bowl_4/bowl_4_1_1_crop.png"
+    },
+    {
+      "key": "ref_coffee_mug_1",
+      "identity": "coffee_mug_1",
+      "path": "experiments/local/instance_scenes_v3/ref_coffee_mug_1.png",
+      "sha256": "5e7f1a4ad0d8011b283af835b52aa257c50a8c3302490c60164d22275738453a",
+      "source_member": "rgbd-dataset_eval/coffee_mug/coffee_mug_1/coffee_mug_1_1_1_crop.png"
+    },
+    {
+      "key": "ref_flashlight_1",
+      "identity": "flashlight_1",
+      "path": "experiments/local/instance_scenes_v3/ref_flashlight_1.png",
+      "sha256": "6554606cfe12e9ae4aa8e44ff0cf01bed2b111d52d555e3016f08451f0351af5",
+      "source_member": "rgbd-dataset_eval/flashlight/flashlight_1/flashlight_1_1_1_crop.png"
+    },
+    {
+      "key": "ref_soda_can_4",
+      "identity": "soda_can_4",
+      "path": "experiments/local/instance_scenes_v3/ref_soda_can_4.png",
+      "sha256": "ae74954fefe82c5d8aa649ca648155dd110e468a636621e0e9940a84c2f87e61",
+      "source_member": "rgbd-dataset_eval/soda_can/soda_can_4/soda_can_4_1_1_crop.png"
+    }
+  ],
+  "frames": [
+    {
+      "key": "desk_2_1__bowl_4",
+      "scene": "desk_2",
+      "frame_key": "desk_2_1",
+      "frame": 1,
+      "identity": "bowl_4",
+      "image": "experiments/local/instance_scenes_v3/desk_2_1.png",
+      "image_sha256": "796eddb7a108a2390d27fa3ba9f781842d2737139802729dafd4820673a0081a",
+      "reference": "experiments/local/instance_scenes_v3/ref_bowl_4.png",
+      "reference_key": "ref_bowl_4",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          0.0,
+          133.0,
+          99.0,
+          191.0
+        ]
+      ]
+    },
+    {
+      "key": "desk_2_64__bowl_4",
+      "scene": "desk_2",
+      "frame_key": "desk_2_64",
+      "frame": 64,
+      "identity": "bowl_4",
+      "image": "experiments/local/instance_scenes_v3/desk_2_64.png",
+      "image_sha256": "7a0860ace11de2e31626c21bcad9316ef9c25a83cea7853ef838264b40c41e68",
+      "reference": "experiments/local/instance_scenes_v3/ref_bowl_4.png",
+      "reference_key": "ref_bowl_4",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          164.0,
+          291.0,
+          345.0,
+          447.0
+        ],
+        [
+          472.0,
+          51.0,
+          529.0,
+          119.0
+        ],
+        [
+          155.0,
+          180.0,
+          215.0,
+          299.0
+        ]
+      ]
+    },
+    {
+      "key": "desk_2_127__bowl_4",
+      "scene": "desk_2",
+      "frame_key": "desk_2_127",
+      "frame": 127,
+      "identity": "bowl_4",
+      "image": "experiments/local/instance_scenes_v3/desk_2_127.png",
+      "image_sha256": "d30b19c60a8946e63dbb87e28186957fdf2486f7e163b3290ecdbc02161195c0",
+      "reference": "experiments/local/instance_scenes_v3/ref_bowl_4.png",
+      "reference_key": "ref_bowl_4",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          256.0,
+          102.0,
+          326.0,
+          153.0
+        ],
+        [
+          516.0,
+          226.0,
+          640.0,
+          313.0
+        ],
+        [
+          343.0,
+          72.0,
+          376.0,
+          131.0
+        ]
+      ]
+    },
+    {
+      "key": "desk_2_190__bowl_4",
+      "scene": "desk_2",
+      "frame_key": "desk_2_190",
+      "frame": 190,
+      "identity": "bowl_4",
+      "image": "experiments/local/instance_scenes_v3/desk_2_190.png",
+      "image_sha256": "802e452a783c98ab942ee717ee67d6b675cd68ae00cdd6173de096d90a0b3c09",
+      "reference": "experiments/local/instance_scenes_v3/ref_bowl_4.png",
+      "reference_key": "ref_bowl_4",
+      "bbox": null,
+      "present": false,
+      "distractors": []
+    },
+    {
+      "key": "desk_2_1__coffee_mug_1",
+      "scene": "desk_2",
+      "frame_key": "desk_2_1",
+      "frame": 1,
+      "identity": "coffee_mug_1",
+      "image": "experiments/local/instance_scenes_v3/desk_2_1.png",
+      "image_sha256": "796eddb7a108a2390d27fa3ba9f781842d2737139802729dafd4820673a0081a",
+      "reference": "experiments/local/instance_scenes_v3/ref_coffee_mug_1.png",
+      "reference_key": "ref_coffee_mug_1",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          0.0,
+          133.0,
+          99.0,
+          191.0
+        ]
+      ]
+    },
+    {
+      "key": "desk_2_64__coffee_mug_1",
+      "scene": "desk_2",
+      "frame_key": "desk_2_64",
+      "frame": 64,
+      "identity": "coffee_mug_1",
+      "image": "experiments/local/instance_scenes_v3/desk_2_64.png",
+      "image_sha256": "7a0860ace11de2e31626c21bcad9316ef9c25a83cea7853ef838264b40c41e68",
+      "reference": "experiments/local/instance_scenes_v3/ref_coffee_mug_1.png",
+      "reference_key": "ref_coffee_mug_1",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          164.0,
+          291.0,
+          345.0,
+          447.0
+        ],
+        [
+          472.0,
+          51.0,
+          529.0,
+          119.0
+        ],
+        [
+          155.0,
+          180.0,
+          215.0,
+          299.0
+        ]
+      ]
+    },
+    {
+      "key": "desk_2_127__coffee_mug_1",
+      "scene": "desk_2",
+      "frame_key": "desk_2_127",
+      "frame": 127,
+      "identity": "coffee_mug_1",
+      "image": "experiments/local/instance_scenes_v3/desk_2_127.png",
+      "image_sha256": "d30b19c60a8946e63dbb87e28186957fdf2486f7e163b3290ecdbc02161195c0",
+      "reference": "experiments/local/instance_scenes_v3/ref_coffee_mug_1.png",
+      "reference_key": "ref_coffee_mug_1",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          256.0,
+          102.0,
+          326.0,
+          153.0
+        ],
+        [
+          516.0,
+          226.0,
+          640.0,
+          313.0
+        ],
+        [
+          343.0,
+          72.0,
+          376.0,
+          131.0
+        ]
+      ]
+    },
+    {
+      "key": "desk_2_190__coffee_mug_1",
+      "scene": "desk_2",
+      "frame_key": "desk_2_190",
+      "frame": 190,
+      "identity": "coffee_mug_1",
+      "image": "experiments/local/instance_scenes_v3/desk_2_190.png",
+      "image_sha256": "802e452a783c98ab942ee717ee67d6b675cd68ae00cdd6173de096d90a0b3c09",
+      "reference": "experiments/local/instance_scenes_v3/ref_coffee_mug_1.png",
+      "reference_key": "ref_coffee_mug_1",
+      "bbox": null,
+      "present": false,
+      "distractors": []
+    },
+    {
+      "key": "desk_2_1__flashlight_1",
+      "scene": "desk_2",
+      "frame_key": "desk_2_1",
+      "frame": 1,
+      "identity": "flashlight_1",
+      "image": "experiments/local/instance_scenes_v3/desk_2_1.png",
+      "image_sha256": "796eddb7a108a2390d27fa3ba9f781842d2737139802729dafd4820673a0081a",
+      "reference": "experiments/local/instance_scenes_v3/ref_flashlight_1.png",
+      "reference_key": "ref_flashlight_1",
+      "bbox": [
+        0.0,
+        133.0,
+        99.0,
+        191.0
+      ],
+      "present": true,
+      "distractors": []
+    },
+    {
+      "key": "desk_2_74__flashlight_1",
+      "scene": "desk_2",
+      "frame_key": "desk_2_74",
+      "frame": 74,
+      "identity": "flashlight_1",
+      "image": "experiments/local/instance_scenes_v3/desk_2_74.png",
+      "image_sha256": "4143060b9e03f6c41fd8b70ebaf4479f075e95e946cd687e52ef7a2fa771a986",
+      "reference": "experiments/local/instance_scenes_v3/ref_flashlight_1.png",
+      "reference_key": "ref_flashlight_1",
+      "bbox": [
+        357.0,
+        119.0,
+        436.0,
+        196.0
+      ],
+      "present": true,
+      "distractors": []
+    },
+    {
+      "key": "desk_2_117__flashlight_1",
+      "scene": "desk_2",
+      "frame_key": "desk_2_117",
+      "frame": 117,
+      "identity": "flashlight_1",
+      "image": "experiments/local/instance_scenes_v3/desk_2_117.png",
+      "image_sha256": "ff7687cb01df1640bbb478229d6a618733776b079280be8f15f5581cde143ac4",
+      "reference": "experiments/local/instance_scenes_v3/ref_flashlight_1.png",
+      "reference_key": "ref_flashlight_1",
+      "bbox": [
+        447.0,
+        165.0,
+        569.0,
+        211.0
+      ],
+      "present": true,
+      "distractors": [
+        [
+          115.0,
+          133.0,
+          192.0,
+          185.0
+        ],
+        [
+          196.0,
+          93.0,
+          233.0,
+          151.0
+        ]
+      ]
+    },
+    {
+      "key": "desk_2_184__flashlight_1",
+      "scene": "desk_2",
+      "frame_key": "desk_2_184",
+      "frame": 184,
+      "identity": "flashlight_1",
+      "image": "experiments/local/instance_scenes_v3/desk_2_184.png",
+      "image_sha256": "d276adeca9127b9f150b96c538ef0a4e3f40b71b3a31f6cee1c748c98f3bdcbd",
+      "reference": "experiments/local/instance_scenes_v3/ref_flashlight_1.png",
+      "reference_key": "ref_flashlight_1",
+      "bbox": [
+        0.0,
+        244.0,
+        104.0,
+        343.0
+      ],
+      "present": true,
+      "distractors": []
+    },
+    {
+      "key": "desk_2_27__flashlight_1",
+      "scene": "desk_2",
+      "frame_key": "desk_2_27",
+      "frame": 27,
+      "identity": "flashlight_1",
+      "image": "experiments/local/instance_scenes_v3/desk_2_27.png",
+      "image_sha256": "5c35ba7e89cd75739359dee24057665a65fdb7e08a8ec9b37e6fb199baf2b278",
+      "reference": "experiments/local/instance_scenes_v3/ref_flashlight_1.png",
+      "reference_key": "ref_flashlight_1",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          8.0,
+          298.0,
+          159.0,
+          425.0
+        ],
+        [
+          148.0,
+          220.0,
+          213.0,
+          310.0
+        ]
+      ]
+    },
+    {
+      "key": "desk_2_46__flashlight_1",
+      "scene": "desk_2",
+      "frame_key": "desk_2_46",
+      "frame": 46,
+      "identity": "flashlight_1",
+      "image": "experiments/local/instance_scenes_v3/desk_2_46.png",
+      "image_sha256": "1d5dfb3593796524ccfa8b0bcd96914142a18f0f49af84dd4421be5097654f24",
+      "reference": "experiments/local/instance_scenes_v3/ref_flashlight_1.png",
+      "reference_key": "ref_flashlight_1",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          176.0,
+          217.0,
+          346.0,
+          341.0
+        ],
+        [
+          274.0,
+          132.0,
+          337.0,
+          246.0
+        ]
+      ]
+    },
+    {
+      "key": "desk_2_155__flashlight_1",
+      "scene": "desk_2",
+      "frame_key": "desk_2_155",
+      "frame": 155,
+      "identity": "flashlight_1",
+      "image": "experiments/local/instance_scenes_v3/desk_2_155.png",
+      "image_sha256": "9c9c85341fe7ca49478e6a11b4aacc943e14c9229e38f01554e0ddc3c7c06958",
+      "reference": "experiments/local/instance_scenes_v3/ref_flashlight_1.png",
+      "reference_key": "ref_flashlight_1",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          166.0,
+          294.0,
+          275.0,
+          374.0
+        ],
+        [
+          281.0,
+          240.0,
+          331.0,
+          318.0
+        ]
+      ]
+    },
+    {
+      "key": "desk_2_190__flashlight_1",
+      "scene": "desk_2",
+      "frame_key": "desk_2_190",
+      "frame": 190,
+      "identity": "flashlight_1",
+      "image": "experiments/local/instance_scenes_v3/desk_2_190.png",
+      "image_sha256": "802e452a783c98ab942ee717ee67d6b675cd68ae00cdd6173de096d90a0b3c09",
+      "reference": "experiments/local/instance_scenes_v3/ref_flashlight_1.png",
+      "reference_key": "ref_flashlight_1",
+      "bbox": null,
+      "present": false,
+      "distractors": []
+    },
+    {
+      "key": "desk_2_21__soda_can_4",
+      "scene": "desk_2",
+      "frame_key": "desk_2_21",
+      "frame": 21,
+      "identity": "soda_can_4",
+      "image": "experiments/local/instance_scenes_v3/desk_2_21.png",
+      "image_sha256": "bc543e49dfccf4057b2529f744108ee7c185570581d5ff6f70dccb341862e365",
+      "reference": "experiments/local/instance_scenes_v3/ref_soda_can_4.png",
+      "reference_key": "ref_soda_can_4",
+      "bbox": [
+        0.0,
+        183.0,
+        46.0,
+        274.0
+      ],
+      "present": true,
+      "distractors": [
+        [
+          449.0,
+          245.0,
+          596.0,
+          307.0
+        ]
+      ]
+    },
+    {
+      "key": "desk_2_58__soda_can_4",
+      "scene": "desk_2",
+      "frame_key": "desk_2_58",
+      "frame": 58,
+      "identity": "soda_can_4",
+      "image": "experiments/local/instance_scenes_v3/desk_2_58.png",
+      "image_sha256": "638b8f0b94aa0ed7995499b98854e8b5729fc3417813bec0e5f6c1362c19d71e",
+      "reference": "experiments/local/instance_scenes_v3/ref_soda_can_4.png",
+      "reference_key": "ref_soda_can_4",
+      "bbox": [
+        249.0,
+        129.0,
+        307.0,
+        255.0
+      ],
+      "present": true,
+      "distractors": [
+        [
+          230.0,
+          243.0,
+          421.0,
+          390.0
+        ],
+        [
+          604.0,
+          89.0,
+          640.0,
+          143.0
+        ]
+      ]
+    },
+    {
+      "key": "desk_2_133__soda_can_4",
+      "scene": "desk_2",
+      "frame_key": "desk_2_133",
+      "frame": 133,
+      "identity": "soda_can_4",
+      "image": "experiments/local/instance_scenes_v3/desk_2_133.png",
+      "image_sha256": "41f3927ad83bc472e14b144d3f2f630022c94a108558c91f913ecb24d5708643",
+      "reference": "experiments/local/instance_scenes_v3/ref_soda_can_4.png",
+      "reference_key": "ref_soda_can_4",
+      "bbox": [
+        311.0,
+        176.0,
+        343.0,
+        232.0
+      ],
+      "present": true,
+      "distractors": [
+        [
+          225.0,
+          202.0,
+          293.0,
+          252.0
+        ],
+        [
+          447.0,
+          350.0,
+          574.0,
+          453.0
+        ]
+      ]
+    },
+    {
+      "key": "desk_2_170__soda_can_4",
+      "scene": "desk_2",
+      "frame_key": "desk_2_170",
+      "frame": 170,
+      "identity": "soda_can_4",
+      "image": "experiments/local/instance_scenes_v3/desk_2_170.png",
+      "image_sha256": "ffc0fa3acd9d6ed99d18dcb229dd0a3db74682b3b20e00a8e0f1b457cae1039e",
+      "reference": "experiments/local/instance_scenes_v3/ref_soda_can_4.png",
+      "reference_key": "ref_soda_can_4",
+      "bbox": [
+        0.0,
+        167.0,
+        31.0,
+        295.0
+      ],
+      "present": true,
+      "distractors": [
+        [
+          559.0,
+          194.0,
+          640.0,
+          273.0
+        ]
+      ]
+    },
+    {
+      "key": "desk_2_1__soda_can_4",
+      "scene": "desk_2",
+      "frame_key": "desk_2_1",
+      "frame": 1,
+      "identity": "soda_can_4",
+      "image": "experiments/local/instance_scenes_v3/desk_2_1.png",
+      "image_sha256": "796eddb7a108a2390d27fa3ba9f781842d2737139802729dafd4820673a0081a",
+      "reference": "experiments/local/instance_scenes_v3/ref_soda_can_4.png",
+      "reference_key": "ref_soda_can_4",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          0.0,
+          133.0,
+          99.0,
+          191.0
+        ]
+      ]
+    },
+    {
+      "key": "desk_2_77__soda_can_4",
+      "scene": "desk_2",
+      "frame_key": "desk_2_77",
+      "frame": 77,
+      "identity": "soda_can_4",
+      "image": "experiments/local/instance_scenes_v3/desk_2_77.png",
+      "image_sha256": "328b2f8c1eec1e6a003432dc3346772489ef1c1181e23430d787e0b2a600e35e",
+      "reference": "experiments/local/instance_scenes_v3/ref_soda_can_4.png",
+      "reference_key": "ref_soda_can_4",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          314.0,
+          141.0,
+          399.0,
+          222.0
+        ]
+      ]
+    },
+    {
+      "key": "desk_2_103__soda_can_4",
+      "scene": "desk_2",
+      "frame_key": "desk_2_103",
+      "frame": 103,
+      "identity": "soda_can_4",
+      "image": "experiments/local/instance_scenes_v3/desk_2_103.png",
+      "image_sha256": "00a723cddc0b116c685cb9ad358f9c3130c3ccb120c43c92bb191a98a90ed0c6",
+      "reference": "experiments/local/instance_scenes_v3/ref_soda_can_4.png",
+      "reference_key": "ref_soda_can_4",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          270.0,
+          113.0,
+          403.0,
+          174.0
+        ]
+      ]
+    },
+    {
+      "key": "desk_2_190__soda_can_4",
+      "scene": "desk_2",
+      "frame_key": "desk_2_190",
+      "frame": 190,
+      "identity": "soda_can_4",
+      "image": "experiments/local/instance_scenes_v3/desk_2_190.png",
+      "image_sha256": "802e452a783c98ab942ee717ee67d6b675cd68ae00cdd6173de096d90a0b3c09",
+      "reference": "experiments/local/instance_scenes_v3/ref_soda_can_4.png",
+      "reference_key": "ref_soda_can_4",
+      "bbox": null,
+      "present": false,
+      "distractors": []
+    },
+    {
+      "key": "table_small_1_10__bowl_4",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_10",
+      "frame": 10,
+      "identity": "bowl_4",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_10.png",
+      "image_sha256": "9280047b0d491d4f645f59bb95e7ee5ed0097d70cd02c54417b8f306c377f456",
+      "reference": "experiments/local/instance_scenes_v3/ref_bowl_4.png",
+      "reference_key": "ref_bowl_4",
+      "bbox": [
+        0.0,
+        178.0,
+        39.0,
+        267.0
+      ],
+      "present": true,
+      "distractors": [
+        [
+          190.0,
+          33.0,
+          284.0,
+          286.0
+        ],
+        [
+          0.0,
+          94.0,
+          76.0,
+          169.0
+        ],
+        [
+          100.0,
+          116.0,
+          160.0,
+          198.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_68__bowl_4",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_68",
+      "frame": 68,
+      "identity": "bowl_4",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_68.png",
+      "image_sha256": "0de35aec48996d4d455c0074294e9f0bb8259f3eae50d1302ff4b5d68c78823f",
+      "reference": "experiments/local/instance_scenes_v3/ref_bowl_4.png",
+      "reference_key": "ref_bowl_4",
+      "bbox": [
+        251.0,
+        286.0,
+        393.0,
+        412.0
+      ],
+      "present": true,
+      "distractors": [
+        [
+          333.0,
+          26.0,
+          518.0,
+          251.0
+        ],
+        [
+          45.0,
+          193.0,
+          150.0,
+          311.0
+        ],
+        [
+          228.0,
+          160.0,
+          291.0,
+          258.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_126__bowl_4",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_126",
+      "frame": 126,
+      "identity": "bowl_4",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_126.png",
+      "image_sha256": "a2af6ffa09f3984df00a21d0bd3a700820cba8332aebf2865da88c7e4b7c105d",
+      "reference": "experiments/local/instance_scenes_v3/ref_bowl_4.png",
+      "reference_key": "ref_bowl_4",
+      "bbox": [
+        320.0,
+        80.0,
+        387.0,
+        139.0
+      ],
+      "present": true,
+      "distractors": [
+        [
+          416.0,
+          0.0,
+          542.0,
+          205.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_199__bowl_4",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_199",
+      "frame": 199,
+      "identity": "bowl_4",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_199.png",
+      "image_sha256": "b92db25b6a8a20fe457f00b4c7dcf6ceae53ba090cb1c0fc1ccd5a9f01d30f2b",
+      "reference": "experiments/local/instance_scenes_v3/ref_bowl_4.png",
+      "reference_key": "ref_bowl_4",
+      "bbox": [
+        66.0,
+        260.0,
+        177.0,
+        343.0
+      ],
+      "present": true,
+      "distractors": [
+        [
+          331.0,
+          120.0,
+          426.0,
+          374.0
+        ],
+        [
+          146.0,
+          205.0,
+          220.0,
+          270.0
+        ],
+        [
+          243.0,
+          213.0,
+          295.0,
+          292.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_1__bowl_4",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_1",
+      "frame": 1,
+      "identity": "bowl_4",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_1.png",
+      "image_sha256": "6b6474a5b7055504d3120c3fe506ab3cf0024e0b870fab11418381f1b940fedc",
+      "reference": "experiments/local/instance_scenes_v3/ref_bowl_4.png",
+      "reference_key": "ref_bowl_4",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          0.0,
+          137.0,
+          28.0,
+          270.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_8__bowl_4",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_8",
+      "frame": 8,
+      "identity": "bowl_4",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_8.png",
+      "image_sha256": "12c81c70ee74e8f033013c2da08688489680fa90e41497c5dbad781414765bab",
+      "reference": "experiments/local/instance_scenes_v3/ref_bowl_4.png",
+      "reference_key": "ref_bowl_4",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          134.0,
+          34.0,
+          234.0,
+          295.0
+        ],
+        [
+          0.0,
+          103.0,
+          22.0,
+          179.0
+        ],
+        [
+          43.0,
+          122.0,
+          111.0,
+          207.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_140__bowl_4",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_140",
+      "frame": 140,
+      "identity": "bowl_4",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_140.png",
+      "image_sha256": "93e37518615d24b08aaa6fc41110c39b67c92d9ac74397b7d358853c06dec2ae",
+      "reference": "experiments/local/instance_scenes_v3/ref_bowl_4.png",
+      "reference_key": "ref_bowl_4",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          371.0,
+          110.0,
+          521.0,
+          299.0
+        ],
+        [
+          542.0,
+          128.0,
+          600.0,
+          185.0
+        ],
+        [
+          505.0,
+          158.0,
+          554.0,
+          230.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_165__bowl_4",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_165",
+      "frame": 165,
+      "identity": "bowl_4",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_165.png",
+      "image_sha256": "1988b7389c6001977907a43dbe6e39d245bfa20c67c357fa9eae6cf83c741e22",
+      "reference": "experiments/local/instance_scenes_v3/ref_bowl_4.png",
+      "reference_key": "ref_bowl_4",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          234.0,
+          239.0,
+          401.0,
+          461.0
+        ],
+        [
+          370.0,
+          218.0,
+          424.0,
+          279.0
+        ],
+        [
+          355.0,
+          265.0,
+          406.0,
+          340.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_8__coffee_mug_1",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_8",
+      "frame": 8,
+      "identity": "coffee_mug_1",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_8.png",
+      "image_sha256": "12c81c70ee74e8f033013c2da08688489680fa90e41497c5dbad781414765bab",
+      "reference": "experiments/local/instance_scenes_v3/ref_coffee_mug_1.png",
+      "reference_key": "ref_coffee_mug_1",
+      "bbox": [
+        0.0,
+        103.0,
+        22.0,
+        179.0
+      ],
+      "present": true,
+      "distractors": [
+        [
+          134.0,
+          34.0,
+          234.0,
+          295.0
+        ],
+        [
+          43.0,
+          122.0,
+          111.0,
+          207.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_68__coffee_mug_1",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_68",
+      "frame": 68,
+      "identity": "coffee_mug_1",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_68.png",
+      "image_sha256": "0de35aec48996d4d455c0074294e9f0bb8259f3eae50d1302ff4b5d68c78823f",
+      "reference": "experiments/local/instance_scenes_v3/ref_coffee_mug_1.png",
+      "reference_key": "ref_coffee_mug_1",
+      "bbox": [
+        45.0,
+        193.0,
+        150.0,
+        311.0
+      ],
+      "present": true,
+      "distractors": [
+        [
+          251.0,
+          286.0,
+          393.0,
+          412.0
+        ],
+        [
+          333.0,
+          26.0,
+          518.0,
+          251.0
+        ],
+        [
+          228.0,
+          160.0,
+          291.0,
+          258.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_136__coffee_mug_1",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_136",
+      "frame": 136,
+      "identity": "coffee_mug_1",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_136.png",
+      "image_sha256": "7875d455f027ad21fa4b7c2897d6e2f78b70f45404f6709aa2988e0434d05bea",
+      "reference": "experiments/local/instance_scenes_v3/ref_coffee_mug_1.png",
+      "reference_key": "ref_coffee_mug_1",
+      "bbox": [
+        531.0,
+        124.0,
+        591.0,
+        182.0
+      ],
+      "present": true,
+      "distractors": [
+        [
+          380.0,
+          108.0,
+          539.0,
+          314.0
+        ],
+        [
+          505.0,
+          156.0,
+          558.0,
+          231.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_199__coffee_mug_1",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_199",
+      "frame": 199,
+      "identity": "coffee_mug_1",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_199.png",
+      "image_sha256": "b92db25b6a8a20fe457f00b4c7dcf6ceae53ba090cb1c0fc1ccd5a9f01d30f2b",
+      "reference": "experiments/local/instance_scenes_v3/ref_coffee_mug_1.png",
+      "reference_key": "ref_coffee_mug_1",
+      "bbox": [
+        146.0,
+        205.0,
+        220.0,
+        270.0
+      ],
+      "present": true,
+      "distractors": [
+        [
+          66.0,
+          260.0,
+          177.0,
+          343.0
+        ],
+        [
+          331.0,
+          120.0,
+          426.0,
+          374.0
+        ],
+        [
+          243.0,
+          213.0,
+          295.0,
+          292.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_1__coffee_mug_1",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_1",
+      "frame": 1,
+      "identity": "coffee_mug_1",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_1.png",
+      "image_sha256": "6b6474a5b7055504d3120c3fe506ab3cf0024e0b870fab11418381f1b940fedc",
+      "reference": "experiments/local/instance_scenes_v3/ref_coffee_mug_1.png",
+      "reference_key": "ref_coffee_mug_1",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          0.0,
+          137.0,
+          28.0,
+          270.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_6__coffee_mug_1",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_6",
+      "frame": 6,
+      "identity": "coffee_mug_1",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_6.png",
+      "image_sha256": "688a1035f0dc8010ee6b74b0f94a24ee2cd4d493067d79ef867a5aa838c153a5",
+      "reference": "experiments/local/instance_scenes_v3/ref_coffee_mug_1.png",
+      "reference_key": "ref_coffee_mug_1",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          84.0,
+          37.0,
+          196.0,
+          305.0
+        ],
+        [
+          2.0,
+          126.0,
+          75.0,
+          212.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_129__coffee_mug_1",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_129",
+      "frame": 129,
+      "identity": "coffee_mug_1",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_129.png",
+      "image_sha256": "f4999810958676a062d5db9b5dc3291791ee6e24c4d9fca84771b1e396dc903b",
+      "reference": "experiments/local/instance_scenes_v3/ref_coffee_mug_1.png",
+      "reference_key": "ref_coffee_mug_1",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          370.0,
+          125.0,
+          433.0,
+          180.0
+        ],
+        [
+          441.0,
+          56.0,
+          571.0,
+          259.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_173__coffee_mug_1",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_173",
+      "frame": 173,
+      "identity": "coffee_mug_1",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_173.png",
+      "image_sha256": "0dee5f97fafbc55e6635f5f714f2b2b879ee7222d72edc763f39b5c424a76ecc",
+      "reference": "experiments/local/instance_scenes_v3/ref_coffee_mug_1.png",
+      "reference_key": "ref_coffee_mug_1",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          233.0,
+          256.0,
+          306.0,
+          323.0
+        ],
+        [
+          339.0,
+          200.0,
+          472.0,
+          437.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_1__flashlight_1",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_1",
+      "frame": 1,
+      "identity": "flashlight_1",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_1.png",
+      "image_sha256": "6b6474a5b7055504d3120c3fe506ab3cf0024e0b870fab11418381f1b940fedc",
+      "reference": "experiments/local/instance_scenes_v3/ref_flashlight_1.png",
+      "reference_key": "ref_flashlight_1",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          0.0,
+          137.0,
+          28.0,
+          270.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_67__flashlight_1",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_67",
+      "frame": 67,
+      "identity": "flashlight_1",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_67.png",
+      "image_sha256": "c145b05d4420234046b74df28d45d94276c4af487dc54b4398409f612da93a7a",
+      "reference": "experiments/local/instance_scenes_v3/ref_flashlight_1.png",
+      "reference_key": "ref_flashlight_1",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          247.0,
+          264.0,
+          386.0,
+          386.0
+        ],
+        [
+          341.0,
+          19.0,
+          522.0,
+          242.0
+        ],
+        [
+          56.0,
+          175.0,
+          159.0,
+          284.0
+        ],
+        [
+          234.0,
+          148.0,
+          297.0,
+          242.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_133__flashlight_1",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_133",
+      "frame": 133,
+      "identity": "flashlight_1",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_133.png",
+      "image_sha256": "fa2c6fff37b83e5e791b0c0a6a24efe6e7690bc02965054d0e1a82993f1060f7",
+      "reference": "experiments/local/instance_scenes_v3/ref_flashlight_1.png",
+      "reference_key": "ref_flashlight_1",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          415.0,
+          150.0,
+          482.0,
+          207.0
+        ],
+        [
+          450.0,
+          94.0,
+          600.0,
+          304.0
+        ],
+        [
+          545.0,
+          119.0,
+          605.0,
+          175.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_199__flashlight_1",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_199",
+      "frame": 199,
+      "identity": "flashlight_1",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_199.png",
+      "image_sha256": "b92db25b6a8a20fe457f00b4c7dcf6ceae53ba090cb1c0fc1ccd5a9f01d30f2b",
+      "reference": "experiments/local/instance_scenes_v3/ref_flashlight_1.png",
+      "reference_key": "ref_flashlight_1",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          66.0,
+          260.0,
+          177.0,
+          343.0
+        ],
+        [
+          331.0,
+          120.0,
+          426.0,
+          374.0
+        ],
+        [
+          146.0,
+          205.0,
+          220.0,
+          270.0
+        ],
+        [
+          243.0,
+          213.0,
+          295.0,
+          292.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_1__soda_can_4",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_1",
+      "frame": 1,
+      "identity": "soda_can_4",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_1.png",
+      "image_sha256": "6b6474a5b7055504d3120c3fe506ab3cf0024e0b870fab11418381f1b940fedc",
+      "reference": "experiments/local/instance_scenes_v3/ref_soda_can_4.png",
+      "reference_key": "ref_soda_can_4",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          0.0,
+          137.0,
+          28.0,
+          270.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_67__soda_can_4",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_67",
+      "frame": 67,
+      "identity": "soda_can_4",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_67.png",
+      "image_sha256": "c145b05d4420234046b74df28d45d94276c4af487dc54b4398409f612da93a7a",
+      "reference": "experiments/local/instance_scenes_v3/ref_soda_can_4.png",
+      "reference_key": "ref_soda_can_4",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          247.0,
+          264.0,
+          386.0,
+          386.0
+        ],
+        [
+          341.0,
+          19.0,
+          522.0,
+          242.0
+        ],
+        [
+          56.0,
+          175.0,
+          159.0,
+          284.0
+        ],
+        [
+          234.0,
+          148.0,
+          297.0,
+          242.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_133__soda_can_4",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_133",
+      "frame": 133,
+      "identity": "soda_can_4",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_133.png",
+      "image_sha256": "fa2c6fff37b83e5e791b0c0a6a24efe6e7690bc02965054d0e1a82993f1060f7",
+      "reference": "experiments/local/instance_scenes_v3/ref_soda_can_4.png",
+      "reference_key": "ref_soda_can_4",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          415.0,
+          150.0,
+          482.0,
+          207.0
+        ],
+        [
+          450.0,
+          94.0,
+          600.0,
+          304.0
+        ],
+        [
+          545.0,
+          119.0,
+          605.0,
+          175.0
+        ]
+      ]
+    },
+    {
+      "key": "table_small_1_199__soda_can_4",
+      "scene": "table_small_1",
+      "frame_key": "table_small_1_199",
+      "frame": 199,
+      "identity": "soda_can_4",
+      "image": "experiments/local/instance_scenes_v3/table_small_1_199.png",
+      "image_sha256": "b92db25b6a8a20fe457f00b4c7dcf6ceae53ba090cb1c0fc1ccd5a9f01d30f2b",
+      "reference": "experiments/local/instance_scenes_v3/ref_soda_can_4.png",
+      "reference_key": "ref_soda_can_4",
+      "bbox": null,
+      "present": false,
+      "distractors": [
+        [
+          66.0,
+          260.0,
+          177.0,
+          343.0
+        ],
+        [
+          331.0,
+          120.0,
+          426.0,
+          374.0
+        ],
+        [
+          146.0,
+          205.0,
+          220.0,
+          270.0
+        ],
+        [
+          243.0,
+          213.0,
+          295.0,
+          292.0
+        ]
+      ]
+    }
+  ],
+  "validation_ids": [
+    "bowl_2",
+    "bowl_3",
+    "cap_1",
+    "cap_3",
+    "cap_4",
+    "cereal_box_1",
+    "cereal_box_2",
+    "coffee_mug_5",
+    "coffee_mug_6",
+    "flashlight_2",
+    "flashlight_5",
+    "soda_can_1",
+    "soda_can_3",
+    "soda_can_5",
+    "soda_can_6"
+  ],
+  "test_ids": [
+    "bowl_4",
+    "coffee_mug_1",
+    "flashlight_1",
+    "soda_can_4"
+  ],
+  "missing_ids": [],
+  "absence_definition": "No visible target annotation; not proof of physical absence behind occluders"
+}

@@ -1,0 +1,7 @@
+# Preserve byte-level provenance of the Windows v4 experiment across checkouts.
+experiments/INSTANCE_V4_PROTOCOL.md text eol=lf
+experiments/INSTANCE_V4_VIDEO_PROTOCOL.md text eol=lf
+scripts/instance_experiment_v4.py text eol=lf
+experiments/evidence/instance_v4/*.json text eol=crlf
+experiments/evidence/davis_v4/*.json text eol=crlf
+experiments/evidence/davis_v4/captions/*.json text eol=crlf

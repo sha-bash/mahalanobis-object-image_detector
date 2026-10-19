@@ -1,6 +1,21 @@
 include run.py run.ps1 .env.example .gitignore
+prune experiments
+prune docs
 recursive-include requirements *.txt
 recursive-include configs *.yaml
 recursive-include scripts *.py *.ps1
-recursive-include docs *.md
+exclude scripts/expand_conference_models.py scripts/format_conference_template.py
 recursive-include tests *.py
+include annotations/instances.json
+include src/mcd/projection/LICENSE.upstream
+include experiments/*PROTOCOL.md experiments/*REPRODUCE.md
+include experiments/DATASETS.md experiments/INPUT_DATA.md
+include experiments/protocol.json experiments/drive_protocol.json experiments/gmot40_manifest.json
+include experiments/evidence/*/manifest.json
+include experiments/evidence/gmot40/inventory.json experiments/evidence/drive_inventory.json
+global-exclude *.png *.svg *.npz *.pt *.log
+prune experiments/runs
+prune experiments/local
+prune experiments/notebooks
+prune output
+prune reports

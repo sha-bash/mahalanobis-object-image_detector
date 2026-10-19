@@ -14,10 +14,18 @@ class ProjectedEmbedder:
     def __init__(self, base: Embedder, path: str | Path) -> None:
         self.base = base
         self.path = Path(path)
+        self.learned = None
+        if self.path.suffix == '.json':
+            from mcd.projection.runtime import load_projector
+            self.learned = load_projector(self.path)
+            return
         self.weight_1, self.bias_1, self.weight_2, self.bias_2 = _load_projection(self.path)
 
     def embed(self, texts):
         x = np.asarray(self.base.embed(texts), dtype=np.float64)
+        if self.learned is not None:
+            from mcd.projection.runtime import project
+            return project(self.learned, x)
         h = x @ self.weight_1.T + self.bias_1
         if self.weight_2 is None:
             return h
@@ -39,7 +47,7 @@ def _load_projection(path: Path):
         import torch
     except ImportError as exc:
         raise RuntimeError("Loading .pt projectors requires torch") from exc
-    payload = torch.load(path, map_location="cpu")
+    payload = torch.load(path, map_location="cpu", weights_only=True)
     if isinstance(payload, dict) and "weight" in payload:
         w1 = _as_numpy(payload["weight"])
         b1 = _as_numpy(payload.get("bias", np.zeros(w1.shape[0])))
